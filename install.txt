@@ -1,0 +1,28 @@
+npm install lucide-react recharts
+
+=================Cài Tailwind==================
+npm install chart.js
+npm install chart.js react-chartjs-2
+
+npm install bootstrap
+
+npm install sockjs-client stompjs
+npm install @stomp/stompjs
+
+npm install react-toastify
+
+npm install qrcode.react
+
+npm install react-query react-toastify react-spinners
+
+npm install @tanstack/react-query
+npm install --save-dev @types/react-query
+
+npm install react-spinners
+
+npm i @cloudinary/url-gen @cloudinary/react
+
+npm install moment
+npm install --save-dev @types/moment
+
+npm install react-icons
