@@ -1,0 +1,35 @@
+.table-selection {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.table-card {
+  flex: 0 0 160px;
+  padding: 1rem;
+  border-radius: 12px;
+  border: 2px solid #ccc;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background-color: #f8f8f8;
+}
+
+.table-card:hover {
+  border-color: #28a745;
+  background-color: #eafbea;
+}
+
+.table-card.selected {
+  background-color: #28a745;
+  color: #fff;
+  border-color: #28a745;
+}
+
+.table-card.disabled {
+  background-color: #eee;
+  color: #999;
+  cursor: not-allowed;
+  border-color: #ccc;
+}

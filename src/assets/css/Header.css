@@ -1,0 +1,35 @@
+.nav-link {
+  color: #222;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.nav-link:hover,
+.nav-link.active {
+  color: #fb5849;
+}
+
+.main-button-icon {
+  background-color: transparent;
+  border: 2px solid #fb5849;
+  color: #fb5849;
+  border-radius: 20px;
+  font-size: 14px;
+  transition: 0.3s;
+}
+
+.main-button-icon:hover {
+  background-color: #fb5849;
+  color: #fff;
+}
+
+.header-area.header-sticky {
+  position: fixed;
+  width: 100%;
+  top: 0;
+  z-index: 999;
+  background-color: white;
+}
+.page-content {
+  padding-top: 100px; /* hoặc 120px nếu Header cao hơn */
+}

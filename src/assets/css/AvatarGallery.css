@@ -1,0 +1,43 @@
+.avatar-gallery {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.avatar-large {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid #6c63ff;
+  margin-bottom: 1rem;
+  transition: transform 0.3s ease;
+}
+.avatar-large:hover {
+  transform: scale(1.05);
+}
+
+.avatar-swiper .swiper-slide {
+  width: 70px !important;
+  height: 70px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin-right: 10px;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+.avatar-swiper .swiper-slide.selected {
+  border-color: #6c63ff;
+}
+
+.avatar-swiper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-gallery button {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+}

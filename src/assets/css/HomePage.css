@@ -1,0 +1,58 @@
+.hero-swiper {
+  width: 100%;
+  height: 90vh;
+}
+
+.hero-slide {
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+.hero-overlay {
+  background: rgba(0, 0, 0, 0.4); /* mờ ảnh */
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding-left: 60px;
+}
+
+.hero-content {
+  color: #fff;
+  max-width: 500px;
+}
+
+.hero-content h5 {
+  font-size: 20px;
+  font-weight: 400;
+  margin-bottom: 10px;
+}
+
+.hero-content h1 {
+  font-size: 42px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+.hero-content em {
+  font-style: italic;
+  color: #fb5849;
+}
+
+.main-button {
+  display: inline-block;
+  padding: 10px 25px;
+  background-color: #fb5849;
+  color: #fff;
+  border-radius: 30px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: 0.3s;
+}
+
+.main-button:hover {
+  background-color: #e04c3f;
+}
