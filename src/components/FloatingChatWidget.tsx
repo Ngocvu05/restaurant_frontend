@@ -1,54 +1,127 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, UIEvent } from 'react';
 import SockJS from 'sockjs-client';
 import { Client, IMessage } from '@stomp/stompjs';
 import { MessageCircle, X } from 'lucide-react';
+import { chatApi } from '../api/chatApi';
 import '../assets/css/FloatingChatWidget.css';
 
 interface ChatMessage {
   sender: 'user' | 'ai';
   content: string;
+  timestamp: string;
+  typing?: boolean;
 }
 
 const FloatingChatWidget: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
+  const [page, setPage] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
   const stompClient = useRef<Client | null>(null);
+  const chatBodyRef = useRef<HTMLDivElement | null>(null);
   const sessionId = useRef<string>(`chat-${Date.now()}`);
 
-  useEffect(() => {
-    const token = sessionStorage.getItem('token');
-    const socket = new SockJS('http://localhost:8083/ws'); // 👈 DIRECT to chat-service
-    const client = new Client({
-      webSocketFactory: () => socket,
-      connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},
-      reconnectDelay: 3000,
-      debug: (str) => console.log(str),
-      onConnect: () => {
-        console.log('✅ Connected to WebSocket');
-        client.subscribe(`/topic/room/${sessionId.current}`, (message: IMessage) => {
-          const body = JSON.parse(message.body);
-          setMessages((prev) => [...prev, { sender: 'ai', content: body.response || body.content }]);
-        });
-      },
-      onStompError: (frame) => {
-        console.error('❌ STOMP error:', frame);
-      },
-    });
+  const fetchMessages = async (nextPage: number) => {
+    try {
+      setLoading(true);
+      const token = sessionStorage.getItem('token');
+      const userId = sessionStorage.getItem('userId');
 
-    client.activate();
-    stompClient.current = client;
+      if (!token || !userId) return;
+
+      const res = await chatApi.getMessages(sessionId.current, nextPage);
+      const data = res.data || [];
+
+      if (data.length === 0) {
+        setHasMore(false);
+      } else {
+        const formatted = data.map((m: any) => ({
+          sender: m.senderType?.toLowerCase() || 'ai',
+          content: m.content,
+          timestamp: new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        }));
+        setMessages((prev) => [...formatted.reverse(), ...prev]);
+        setPage(nextPage);
+      }
+    } catch (err) {
+      console.error('❌ Lỗi khi tải message:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onScroll = (e: UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    if (el.scrollTop < 50 && hasMore && !loading) {
+      fetchMessages(page + 1);
+    }
+  };
+
+  const handleOpen = async () => {
+    setOpen(true);
+    const token = sessionStorage.getItem('token');
+    if (token) {
+      await fetchMessages(0);
+    }
+  };
+
+  useEffect(() => {
+    const setupWebSocket = async () => {
+      const token = sessionStorage.getItem('token');
+      const socket = new SockJS('http://localhost:8083/ws');
+      const client = new Client({
+        webSocketFactory: () => socket,
+        connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},
+        reconnectDelay: 3000,
+        debug: (str) => console.log(str),
+        onConnect: () => {
+          console.log('✅ Connected to WebSocket');
+          client.subscribe(`/topic/room/${sessionId.current}`, (message: IMessage) => {
+            const body = JSON.parse(message.body);
+            const response = body.response || body.content;
+
+            setMessages((prev) => [
+              ...prev.filter((m) => !m.typing),
+              {
+                sender: 'ai',
+                content: response,
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              },
+            ]);
+          });
+        },
+        onStompError: (frame) => {
+          console.error('❌ STOMP error:', frame);
+        },
+      });
+
+      client.activate();
+      stompClient.current = client;
+    };
+
+    setupWebSocket();
 
     return () => {
-      client.deactivate();
+      stompClient.current?.deactivate();
     };
   }, []);
+
 
   const sendMessage = async () => {
     if (!input.trim()) return;
 
     const token = sessionStorage.getItem('token');
     const userId = token ? Number(sessionStorage.getItem('userId')) : undefined;
+
+    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    setMessages((prev) => [...prev, { sender: 'user', content: input, timestamp }]);
+
+    // Show typing indicator
+    setMessages((prev) => [...prev, { sender: 'ai', content: 'AI đang phản hồi...', timestamp: '', typing: true }]);
 
     const payload = {
       chatRoomId: sessionId.current,
@@ -59,37 +132,27 @@ const FloatingChatWidget: React.FC = () => {
     };
 
     if (token) {
-      // 🔐 Gửi qua REST nếu đã login
-      try {
-        await fetch('http://localhost:8080/chat/api/v1/chat/send', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(payload),
-        });
-      } catch (error) {
-        console.error('❌ REST gửi tin nhắn lỗi:', error);
-      }
+      await fetch('http://localhost:8080/chat/api/v1/chat/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
     } else {
-      // 🟢 Gửi qua WebSocket nếu chưa login
-      if (stompClient.current && stompClient.current.connected) {
-        stompClient.current.publish({
-          destination: '/app/chat.send',
-          body: JSON.stringify(payload),
-        });
-      }
+      stompClient.current?.publish({
+        destination: '/app/chat.send',
+        body: JSON.stringify(payload),
+      });
     }
-
-    setMessages((prev) => [...prev, { sender: 'user', content: input }]);
     setInput('');
   };
 
   return (
     <div className="floating-chat-wrapper">
       {!open && (
-        <div className="floating-chat-icon" onClick={() => setOpen(true)}>
+        <div className="floating-chat-icon" onClick={handleOpen}>
           <MessageCircle size={28} />
         </div>
       )}
@@ -97,12 +160,18 @@ const FloatingChatWidget: React.FC = () => {
         <div className="floating-chat-box">
           <div className="chat-header">
             <span>💬 Chat với AI</span>
-            <X className="chat-close" onClick={() => setOpen(false)} />
+            <div className="chat-header-buttons">
+              <button className="chat-button" onClick={() => setOpen(false)}>—</button>
+              <button className="chat-button" onClick={() => window.location.href = '/chat'}>⬈</button>
+            </div>
           </div>
-          <div className="chat-body">
+          <div className="chat-body" ref={chatBodyRef} onScroll={onScroll}>
+            {loading && <div className="chat-loading">⏳ Đang tải...</div>}
             {messages.map((msg, i) => (
               <div key={i} className={`chat-message ${msg.sender}`}>
-                {msg.content}
+                <div className="avatar">{msg.sender === 'ai' ? '🤖' : '🧑'}</div>
+                <div className="bubble">{msg.content}</div>
+                {!msg.typing && <div className="timestamp">{msg.timestamp}</div>}
               </div>
             ))}
           </div>

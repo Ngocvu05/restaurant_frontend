@@ -26,3 +26,4 @@ npm install moment
 npm install --save-dev @types/moment
 
 npm install react-icons
+npm i --save-dev @types/stompjs

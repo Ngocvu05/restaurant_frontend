@@ -1,4 +1,3 @@
-import { get } from 'http';
 import axiosConfig from './axiosConfig';
 export interface BookingRequest {
   userId: number;
