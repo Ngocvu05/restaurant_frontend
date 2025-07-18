@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from '../../api/axiosConfig';
+import axios from '../../api/axiosConfigUser';
 import { Line, Pie } from 'react-chartjs-2';
 import {
   Chart,

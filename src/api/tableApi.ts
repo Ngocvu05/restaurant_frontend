@@ -1,4 +1,4 @@
-import axiosConfig from './axiosConfig';
+import axiosConfig from './axiosConfigUser';
 
 const tableApi = {
   getAll: () => axiosConfig.get('/tables'),

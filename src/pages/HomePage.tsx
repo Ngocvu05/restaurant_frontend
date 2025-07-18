@@ -4,7 +4,7 @@ import { Autoplay, Pagination } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/pagination';
 import { motion } from 'framer-motion';
-import api from '../api/axiosConfig';
+import api from '../api/axiosConfigUser';
 import '../assets/css/HomePage.css';
 import { Link } from 'react-router-dom';
 import { useLoading } from '../context/LoadingContext';

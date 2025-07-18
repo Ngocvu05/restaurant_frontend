@@ -1,4 +1,4 @@
-import axiosConfig from '../../api/axiosConfig';
+import axiosConfig from '../../api/axiosConfigUser';
 
 const api = axiosConfig.create({});
 

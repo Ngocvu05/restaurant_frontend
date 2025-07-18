@@ -1,4 +1,4 @@
-import axiosConfig from './axiosConfig';
+import axiosConfig from './axiosConfigUser';
 
 // Gọi danh sách món ăn
 export const fetchDishes = async () => {

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import api from '../api/axiosConfig';
+import api from '../api/axiosConfigUser';
 import '../assets/css/templatemo-klassy-cafe.css';
 import { useLoading } from '../context/LoadingContext';
 

@@ -1,4 +1,4 @@
-import axiosConfig from './axiosConfig';
+import axiosConfig from './axiosConfigUser';
 export interface BookingRequest {
   userId: number;
   tableId: number;

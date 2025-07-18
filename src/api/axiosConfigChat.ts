@@ -29,7 +29,7 @@ chatApiInstance.interceptors.response.use(
       const refreshToken = sessionStorage.getItem('refreshToken');
       if (refreshToken) {
         try {
-          const res = await chatApiInstance.post('/auth/refresh-token', {
+          const res = await chatApiInstance.post('http://localhost:8080/users/api/v1/auth/refresh-token', {
             refreshToken,
           });
 

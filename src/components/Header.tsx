@@ -13,6 +13,7 @@ const Header: React.FC = () => {
   const avatar = sessionStorage.getItem('avatar');
 
   const handleLogout = () => {
+    sessionStorage.removeItem('chatMessages');
     sessionStorage.clear();
     navigate('/login');
   };

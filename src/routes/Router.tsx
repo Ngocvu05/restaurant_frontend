@@ -10,6 +10,7 @@ import Layout from '../components/Layout';
 import ProfilePage from '../pages/ProfilePage';
 import EditProfilePage from '../pages/EditProfilePage';
 import BookingHistoryPage from '../pages/BookingHistoryPage';
+import ChatPage from '../pages/ChatPage';
 
 // Admin
 import AdminLayout from '../admin/components/AdminLayout';
@@ -43,6 +44,10 @@ const AppRouter: React.FC = () => {
         element={<Layout><HomePage /></Layout>}
       />
       <Route
+        path="/chat"
+        element={<Layout><ChatPage /></Layout>}
+      />
+      <Route
         path="/menu"
         element={<Layout><div>Menu Page</div></Layout>}
       />
@@ -53,7 +58,7 @@ const AppRouter: React.FC = () => {
       <Route
         path="/contact"
         element={<Layout><div>Contact Page</div></Layout>}
-      />
+      />    
 
       {/* Protected user routes */}
       <Route element={<ProtectedRoute />}>

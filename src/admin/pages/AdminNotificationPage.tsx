@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axiosConfig from '../../api/axiosConfig';
+import axiosConfig from '../../api/axiosConfigUser';
 import { useQuery } from '@tanstack/react-query';
 import { toast, Slide } from 'react-toastify';
 import ClipLoader from 'react-spinners/ClipLoader';

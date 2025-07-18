@@ -22,7 +22,32 @@ const FloatingChatWidget: React.FC = () => {
 
   const stompClient = useRef<Client | null>(null);
   const chatBodyRef = useRef<HTMLDivElement | null>(null);
-  const sessionId = useRef<string>(`chat-${Date.now()}`);
+  const getSessionId = () => {
+    const saved = sessionStorage.getItem('chat-session-id');
+    if (saved) return saved;
+    const newId = `chat-${Date.now()}`;
+    sessionStorage.setItem('chat-session-id', newId);
+    return newId;
+  };
+  const sessionId = useRef<string>(getSessionId());
+
+
+  // Restore chat messages from sessionStorage when component mounts
+  useEffect(() => {
+    const saved = sessionStorage.getItem('chatMessages');
+    if (saved) {
+      setMessages(JSON.parse(saved));
+    }
+  }, []);
+
+  // Delete chat messages on page unload
+  useEffect(() => {
+    const handleUnload = () => {
+      sessionStorage.removeItem('chatMessages');
+    };
+    window.addEventListener('beforeunload', handleUnload);
+    return () => window.removeEventListener('beforeunload', handleUnload);
+  }, []);
 
   const fetchMessages = async (nextPage: number) => {
     try {
@@ -33,12 +58,13 @@ const FloatingChatWidget: React.FC = () => {
       if (!token || !userId) return;
 
       const res = await chatApi.getMessages(sessionId.current, nextPage);
-      const data = res.data || [];
+      console.log('📦 API trả về:', res.data); // DEBUG
 
-      if (data.length === 0) {
+      const raw = res.data?.content ?? [];
+      if (raw.length === 0) {
         setHasMore(false);
       } else {
-        const formatted = data.map((m: any) => ({
+        const formatted = raw.map((m: any) => ({
           sender: m.senderType?.toLowerCase() || 'ai',
           content: m.content,
           timestamp: new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -53,6 +79,7 @@ const FloatingChatWidget: React.FC = () => {
     }
   };
 
+
   const onScroll = (e: UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
     if (el.scrollTop < 50 && hasMore && !loading) {
@@ -63,9 +90,22 @@ const FloatingChatWidget: React.FC = () => {
   const handleOpen = async () => {
     setOpen(true);
     const token = sessionStorage.getItem('token');
+    // Restore messages from sessionStorage
+    const saved = sessionStorage.getItem('chatMessages');
+    if (saved) {
+      setMessages(JSON.parse(saved));
+    }
+
     if (token) {
       await fetchMessages(0);
     }
+
+    // Scroll to bottom after opening chat
+    setTimeout(() => {
+      if (chatBodyRef.current) {
+        chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
+      }
+    }, 100);
   };
 
   useEffect(() => {
@@ -83,21 +123,25 @@ const FloatingChatWidget: React.FC = () => {
             const body = JSON.parse(message.body);
             const response = body.response || body.content;
 
-            setMessages((prev) => [
-              ...prev.filter((m) => !m.typing),
-              {
-                sender: 'ai',
-                content: response,
-                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              },
-            ]);
+            setMessages((prev) => {
+              const updated: ChatMessage[] = [
+                ...prev.filter((m) => !m.typing),
+                {
+                  sender: 'ai',
+                  content: response,
+                  timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                },
+              ];
+              sessionStorage.setItem('chatMessages', JSON.stringify(updated));
+              return updated;
+            });
           });
         },
         onStompError: (frame) => {
           console.error('❌ STOMP error:', frame);
         },
       });
-
+      
       client.activate();
       stompClient.current = client;
     };
@@ -118,10 +162,18 @@ const FloatingChatWidget: React.FC = () => {
 
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    setMessages((prev) => [...prev, { sender: 'user', content: input, timestamp }]);
+    setMessages((prev) => {
+      const updated: ChatMessage[] = [...prev, { sender: 'user', content: input, timestamp }];
+      sessionStorage.setItem('chatMessages', JSON.stringify(updated));
+      return updated;
+    });
 
     // Show typing indicator
-    setMessages((prev) => [...prev, { sender: 'ai', content: 'AI đang phản hồi...', timestamp: '', typing: true }]);
+    setMessages((prev) => {
+      const updated: ChatMessage[] = [...prev, { sender: 'ai', content: 'AI đang phản hồi...', timestamp: '', typing: true }];
+      sessionStorage.setItem('chatMessages', JSON.stringify(updated));
+      return updated;
+    });
 
     const payload = {
       chatRoomId: sessionId.current,
