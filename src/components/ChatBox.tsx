@@ -1,93 +1,97 @@
-// src/components/ChatBox.tsx
-import React, { useEffect, useRef, useState, UIEvent } from 'react';
-import { chatApi } from '../api/chatApi';
+import React, { useEffect, useRef, useState } from 'react';
+import { FixedSizeList as List } from 'react-window';
+import { chatApi, ChatMessageDTO, ChatMessageRequest } from '../api/chatApi';
+import SockJS from 'sockjs-client';
+import { Client } from '@stomp/stompjs';
 
 interface Props {
   roomId: string;
 }
 
 const ChatBox: React.FC<Props> = ({ roomId }) => {
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<ChatMessageDTO[]>([]);
   const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
-  const chatRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<any>(null);
+  const stompClient = useRef<Client | null>(null);
 
-  const fetchMessages = async (pageNum = 0) => {
-    try {
-      setLoading(true);
-      const res = await chatApi.getMessages(roomId, pageNum);
-      const data = res.data || [];
+  const userId = Number(sessionStorage.getItem('userId'));
+  const token = sessionStorage.getItem('token');
 
-      if (data.length === 0) {
-        setHasMore(false);
-      } else {
-        setMessages((prev) => [...data.reverse(), ...prev]);
-        setPage(pageNum);
-      }
-    } catch (err) {
-      console.error('❌ Lỗi khi tải messages:', err);
-    } finally {
-      setLoading(false);
-    }
+  const connectSocket = () => {
+    const socket = new SockJS('http://localhost:8083/ws');
+    const client = new Client({
+      webSocketFactory: () => socket,
+      reconnectDelay: 5000,
+      onConnect: () => {
+        client.subscribe(`/topic/messages/${roomId}`, (msg) => {
+          const data = JSON.parse(msg.body);
+          setMessages((prev) => [...prev, data]);
+          setTimeout(() => scrollToBottom(), 100);
+        });
+      },
+    });
+    client.activate();
+    stompClient.current = client;
   };
 
   useEffect(() => {
-    setMessages([]);
-    setPage(0);
-    setHasMore(true);
+    connectSocket();
     fetchMessages(0);
+    return () => {
+      stompClient.current?.deactivate();
+    };
   }, [roomId]);
 
-  const onScroll = (e: UIEvent<HTMLDivElement>) => {
-    const el = e.currentTarget;
-    if (el.scrollTop < 50 && hasMore && !loading) {
-      fetchMessages(page + 1);
+  const fetchMessages = async (pageNum: number) => {
+    const res = await chatApi.getMessages(roomId, pageNum);
+    const data = res.data;
+    if (!Array.isArray(data) || data.length === 0) {
+      setHasMore(false);
+    } else {
+      setMessages((prev) => [...data.reverse(), ...prev]);
+      setPage(pageNum);
+      setTimeout(() => scrollToBottom(), 100);
     }
   };
 
   const handleSend = async () => {
-    const token = sessionStorage.getItem('token');
-    const userIdRaw = sessionStorage.getItem('userId');
-    if (!token || !userIdRaw) return;
-    const userId = Number(userIdRaw);
-    const payload = {
+    const payload: ChatMessageRequest = {
       chatRoomId: roomId,
       sessionId: roomId,
       userId,
       message: input,
-      senderType: 'USER' as 'USER' | 'ASSISTANT',
+      senderType: 'USER',
     };
+    await chatApi.sendMessage(payload);
+    setInput('');
+  };
 
-    try {
-      await chatApi.sendMessage(payload); // Send message to API
-      console.log('📤 Tin nhắn đã gửi:', payload);
-      setMessages((prev) => [
-        ...prev,
-        {
-          sender: 'user',
-          content: input,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        },
-      ]);
-      setInput('');
-    } catch (err) {
-      console.error('❌ Lỗi gửi tin nhắn:', err);
-    }
+  const scrollToBottom = () => {
+    listRef.current?.scrollToItem(messages.length - 1);
   };
 
   return (
     <div className="chat-box">
-      <div className="chat-history" onScroll={onScroll} ref={chatRef}>
-        {loading && <div className="chat-loading">⏳ Đang tải...</div>}
-        {messages.map((msg, idx) => (
-          <div key={idx} className={`chat-message ${msg.sender.toLowerCase()}`}>
-            <div className="bubble">{msg.content}</div>
-            <div className="timestamp">{msg.timestamp}</div>
-          </div>
-        ))}
-      </div>
+      <List
+        height={window.innerHeight - 200}
+        itemCount={messages.length}
+        itemSize={60}
+        width={'100%'}
+        ref={listRef}
+      >
+        {({ index, style }) => {
+          const msg = messages[index];
+          return (
+            <div style={style} className={`chat-message ${msg.senderType.toLowerCase()}`}>
+              <div className="bubble">{msg.content}</div>
+              <div className="timestamp">{msg.timestamp}</div>
+            </div>
+          );
+        }}
+      </List>
+
       <div className="chat-input">
         <input
           value={input}

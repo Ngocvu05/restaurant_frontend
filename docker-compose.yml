@@ -1,0 +1,6 @@
+services:
+  restaurantfrontend:
+    image: restaurantfrontend
+    build:
+      context: .
+      dockerfile: ./Dockerfile

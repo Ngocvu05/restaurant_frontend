@@ -8,6 +8,7 @@ npm install bootstrap
 
 npm install sockjs-client stompjs
 npm install @stomp/stompjs
+npm i --save-dev @types/stompjs
 
 npm install react-toastify
 
@@ -26,4 +27,6 @@ npm install moment
 npm install --save-dev @types/moment
 
 npm install react-icons
-npm i --save-dev @types/stompjs
+
+npm install react-window
+npm i --save-dev @types/react-window

@@ -22,6 +22,7 @@ const FloatingChatWidget: React.FC = () => {
 
   const stompClient = useRef<Client | null>(null);
   const chatBodyRef = useRef<HTMLDivElement | null>(null);
+  
   const getSessionId = () => {
     const saved = sessionStorage.getItem('chat-session-id');
     if (saved) return saved;
@@ -31,12 +32,16 @@ const FloatingChatWidget: React.FC = () => {
   };
   const sessionId = useRef<string>(getSessionId());
 
-
   // Restore chat messages from sessionStorage when component mounts
   useEffect(() => {
     const saved = sessionStorage.getItem('chatMessages');
     if (saved) {
-      setMessages(JSON.parse(saved));
+      try {
+        setMessages(JSON.parse(saved));
+      } catch (error) {
+        console.error('Error parsing saved messages:', error);
+        sessionStorage.removeItem('chatMessages');
+      }
     }
   }, []);
 
@@ -55,17 +60,20 @@ const FloatingChatWidget: React.FC = () => {
       const token = sessionStorage.getItem('token');
       const userId = sessionStorage.getItem('userId');
 
-      if (!token || !userId) return;
+      if (!token || !userId) {
+        setLoading(false);
+        return;
+      }
 
       const res = await chatApi.getMessages(sessionId.current, nextPage);
-      console.log('📦 API trả về:', res.data); // DEBUG
+      console.log('📦 API trả về:', res.data);
 
       const raw = res.data?.content ?? [];
       if (raw.length === 0) {
         setHasMore(false);
       } else {
         const formatted = raw.map((m: any) => ({
-          sender: m.senderType?.toLowerCase() || 'ai',
+          sender: m.senderType?.toLowerCase() === 'user' ? 'user' : 'ai',
           content: m.content,
           timestamp: new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         }));
@@ -74,11 +82,11 @@ const FloatingChatWidget: React.FC = () => {
       }
     } catch (err) {
       console.error('❌ Lỗi khi tải message:', err);
+      setHasMore(false);
     } finally {
       setLoading(false);
     }
   };
-
 
   const onScroll = (e: UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
@@ -90,12 +98,18 @@ const FloatingChatWidget: React.FC = () => {
   const handleOpen = async () => {
     setOpen(true);
     const token = sessionStorage.getItem('token');
+    
     // Restore messages from sessionStorage
     const saved = sessionStorage.getItem('chatMessages');
     if (saved) {
-      setMessages(JSON.parse(saved));
+      try {
+        setMessages(JSON.parse(saved));
+      } catch (error) {
+        console.error('Error parsing saved messages:', error);
+      }
     }
 
+    // Only fetch messages if user is authenticated
     if (token) {
       await fetchMessages(0);
     }
@@ -110,95 +124,161 @@ const FloatingChatWidget: React.FC = () => {
 
   useEffect(() => {
     const setupWebSocket = async () => {
-      const token = sessionStorage.getItem('token');
-      const socket = new SockJS('http://localhost:8083/ws');
-      const client = new Client({
-        webSocketFactory: () => socket,
-        connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},
-        reconnectDelay: 3000,
-        debug: (str) => console.log(str),
-        onConnect: () => {
-          console.log('✅ Connected to WebSocket');
-          client.subscribe(`/topic/room/${sessionId.current}`, (message: IMessage) => {
-            const body = JSON.parse(message.body);
-            const response = body.response || body.content;
+      try {
+        const token = sessionStorage.getItem('token');
+        const socket = new SockJS('http://localhost:8083/ws');
+        const client = new Client({
+          webSocketFactory: () => socket,
+          connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},
+          reconnectDelay: 3000,
+          heartbeatIncoming: 4000,
+          heartbeatOutgoing: 4000,
+          debug: (str) => console.log('STOMP Debug:', str),
+          onConnect: () => {
+            console.log('✅ Connected to WebSocket');
+            client.subscribe(`/topic/room/${sessionId.current}`, (message: IMessage) => {
+              try {
+                const body = JSON.parse(message.body);
+                const response = body.response || body.content || body.message;
 
-            setMessages((prev) => {
-              const updated: ChatMessage[] = [
-                ...prev.filter((m) => !m.typing),
-                {
-                  sender: 'ai',
-                  content: response,
-                  timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                },
-              ];
-              sessionStorage.setItem('chatMessages', JSON.stringify(updated));
-              return updated;
+                setMessages((prev) => {
+                  const updated: ChatMessage[] = [
+                    ...prev.filter((m) => !m.typing),
+                    {
+                      sender: 'ai',
+                      content: response,
+                      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    },
+                  ];
+                  sessionStorage.setItem('chatMessages', JSON.stringify(updated));
+                  return updated;
+                });
+
+                // Auto scroll to bottom
+                setTimeout(() => {
+                  if (chatBodyRef.current) {
+                    chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
+                  }
+                }, 100);
+              } catch (error) {
+                console.error('Error parsing WebSocket message:', error);
+              }
             });
-          });
-        },
-        onStompError: (frame) => {
-          console.error('❌ STOMP error:', frame);
-        },
-      });
-      
-      client.activate();
-      stompClient.current = client;
+          },
+          onStompError: (frame) => {
+            console.error('❌ STOMP error:', frame);
+          },
+          onWebSocketError: (error) => {
+            console.error('❌ WebSocket error:', error);
+          },
+          onDisconnect: () => {
+            console.log('❌ Disconnected from WebSocket');
+          }
+        });
+        
+        client.activate();
+        stompClient.current = client;
+      } catch (error) {
+        console.error('Error setting up WebSocket:', error);
+      }
     };
 
     setupWebSocket();
 
     return () => {
-      stompClient.current?.deactivate();
+      if (stompClient.current) {
+        stompClient.current.deactivate();
+      }
     };
   }, []);
-
 
   const sendMessage = async () => {
     if (!input.trim()) return;
 
     const token = sessionStorage.getItem('token');
-    const userId = token ? Number(sessionStorage.getItem('userId')) : undefined;
-
+    const userId = token ? sessionStorage.getItem('userId') : null;
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+    // Add user message immediately
+    const userMessage: ChatMessage = { 
+      sender: 'user', 
+      content: input, 
+      timestamp 
+    };
+
     setMessages((prev) => {
-      const updated: ChatMessage[] = [...prev, { sender: 'user', content: input, timestamp }];
+      const updated: ChatMessage[] = [...prev, userMessage];
       sessionStorage.setItem('chatMessages', JSON.stringify(updated));
       return updated;
     });
 
     // Show typing indicator
+    const typingMessage: ChatMessage = { 
+      sender: 'ai', 
+      content: 'AI đang phản hồi...', 
+      timestamp: '', 
+      typing: true 
+    };
+
     setMessages((prev) => {
-      const updated: ChatMessage[] = [...prev, { sender: 'ai', content: 'AI đang phản hồi...', timestamp: '', typing: true }];
-      sessionStorage.setItem('chatMessages', JSON.stringify(updated));
+      const updated: ChatMessage[] = [...prev, typingMessage];
       return updated;
     });
 
-    const payload = {
-      chatRoomId: sessionId.current,
-      sessionId: sessionId.current,
-      userId,
-      message: input,
-      senderType: 'USER',
-    };
+    const messageToSend = input;
+    setInput(''); // Clear input immediately
 
-    if (token) {
-      await fetch('http://localhost:8080/chat/api/v1/chat/send', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-    } else {
-      stompClient.current?.publish({
-        destination: '/app/chat.send',
-        body: JSON.stringify(payload),
+    // Auto scroll to bottom
+    setTimeout(() => {
+      if (chatBodyRef.current) {
+        chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
+      }
+    }, 100);
+
+    try {
+      const payload = {
+        chatRoomId: sessionId.current,
+        sessionId: sessionId.current,
+        userId: userId ? Number(userId) : undefined,
+        message: messageToSend,
+        senderType: 'USER' as const,
+      };
+
+      if (token && userId) {
+        // Authenticated user - use REST API
+        await chatApi.sendMessage(payload);
+      } else {
+        // Guest user - use WebSocket
+        if (stompClient.current?.connected) {
+          stompClient.current.publish({
+            destination: '/app/chat.send',
+            body: JSON.stringify(payload),
+          });
+        } else {
+          console.error('WebSocket not connected');
+          // Remove typing indicator on error
+          setMessages((prev) => prev.filter((m) => !m.typing));
+        }
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      // Remove typing indicator on error
+      setMessages((prev) => prev.filter((m) => !m.typing));
+      
+      // Optionally show error message
+      setMessages((prev) => {
+        const updated: ChatMessage[] = [
+          ...prev,
+          {
+            sender: 'ai',
+            content: 'Xin lỗi, có lỗi xảy ra khi gửi tin nhắn. Vui lòng thử lại.',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          },
+        ];
+        sessionStorage.setItem('chatMessages', JSON.stringify(updated));
+        return updated;
       });
     }
-    setInput('');
   };
 
   return (
@@ -235,7 +315,9 @@ const FloatingChatWidget: React.FC = () => {
               onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
               placeholder="Nhập tin nhắn..."
             />
-            <button onClick={sendMessage}>Gửi</button>
+            <button onClick={sendMessage} disabled={!input.trim()}>
+              Gửi
+            </button>
           </div>
         </div>
       )}

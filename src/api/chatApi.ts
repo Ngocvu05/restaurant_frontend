@@ -3,7 +3,7 @@ import axiosConfig from './axiosConfigChat';
 export interface ChatMessageRequest {
   chatRoomId: string;
   sessionId: string;
-  userId: number | string;
+  userId?: number;
   message: string;
   senderType: 'USER' | 'ASSISTANT';
 }
@@ -31,7 +31,15 @@ export interface ChatRoomDTO {
 
 export const chatApi = {
   sendMessage: (data: ChatMessageRequest) => {
-    return axiosConfig.post('/chat/send', data);
+    const userId = sessionStorage.getItem('userId');
+    const token = sessionStorage.getItem('token');
+    
+    // If no user ID or token, this is a guest user
+    if (!userId || !token) {
+      return axiosConfig.post('/guest/send', data);
+    } else {
+      return axiosConfig.post('/chat/send', data);
+    }
   },
 
   getMessagesByUserId: (userId: number) => {
@@ -42,19 +50,18 @@ export const chatApi = {
     return axiosConfig.get(`/chat/${roomId}?page=${page}&size=${size}`);
   },
 
-  getListRooms: () => 
-    axiosConfig.get<ChatRoomDTO[]>('/rooms'),
+  getListRooms: () => axiosConfig.get('/rooms'),
 
   getMessagesByChatRoom: (roomId: string, page: number, size = 10) =>
-    axiosConfig.get<ChatMessageDTO[]>(`/messages/${roomId}?page=${page}&size=${size}`),
+    axiosConfig.get(`/messages/${roomId}?page=${page}&size=${size}`),
 
   getUserRooms: (userId: number) => axiosConfig.get(`/rooms/${userId}`),
 
-   getUserRooms_v2: () => {
+  getUserRooms_v2: () => {
     const userId = sessionStorage.getItem('userId');
     return axiosConfig.get('/rooms/me', {
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
         'X-User-Id': userId,
       },
     });
