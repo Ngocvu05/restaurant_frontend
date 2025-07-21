@@ -201,7 +201,7 @@ const FloatingChatWidget: React.FC = () => {
 
     // Add user message immediately
     const userMessage: ChatMessage = { 
-      sender: 'user', 
+      sender: 'user' , 
       content: input, 
       timestamp 
     };
@@ -236,13 +236,14 @@ const FloatingChatWidget: React.FC = () => {
     }, 100);
 
     try {
+      const isGuest = !token || !userId;
       const payload = {
         chatRoomId: sessionId.current,
         sessionId: sessionId.current,
-        userId: userId ? Number(userId) : undefined,
+        userId: isGuest ? undefined : Number(userId),
         message: messageToSend,
-        senderType: 'USER' as const,
-      };
+        senderType: isGuest ? 'GUEST' : 'USER',
+      } as const;
 
       if (token && userId) {
         // Authenticated user - use REST API

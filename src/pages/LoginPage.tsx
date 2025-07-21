@@ -31,9 +31,11 @@ const LoginPage: React.FC = () => {
   });
 
   const onSubmit = async (data: any) => {
+      data.sessionId = sessionStorage.getItem('chat-session-id') || '';
       setLoading(true);
     try {
-      const response = await api.post('/auth/login', data);
+      console.log("Data submit form login",data)
+      const response = await api.post('/auth/login', data);      
       const { token, username: name, role, avatarUrl, fullname } = response.data;
       console.log("Login Respone data: ",response.data);
       sessionStorage.setItem('token', token);

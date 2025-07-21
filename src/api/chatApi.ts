@@ -5,7 +5,7 @@ export interface ChatMessageRequest {
   sessionId: string;
   userId?: number;
   message: string;
-  senderType: 'USER' | 'ASSISTANT';
+  senderType: 'USER' | 'ASSISTANT' | 'GUEST';
 }
 
 export interface ChatMessageResponse {
@@ -14,7 +14,7 @@ export interface ChatMessageResponse {
 }
 
 export interface ChatMessageDTO {
-  senderType: 'USER' | 'AI';
+  senderType: 'USER' | 'AI' | 'GUEST';
   content: string;
   timestamp: string;
 }
@@ -33,9 +33,10 @@ export const chatApi = {
   sendMessage: (data: ChatMessageRequest) => {
     const userId = sessionStorage.getItem('userId');
     const token = sessionStorage.getItem('token');
-    
+    data.userId = userId ? Number(userId) : undefined;
     // If no user ID or token, this is a guest user
     if (!userId || !token) {
+      data.senderType = 'GUEST';
       return axiosConfig.post('/guest/send', data);
     } else {
       return axiosConfig.post('/chat/send', data);

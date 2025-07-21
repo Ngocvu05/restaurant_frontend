@@ -28,7 +28,7 @@ const RoomList: React.FC<Props> = ({ selectedRoomId, onSelectRoom }) => {
       itemSize={60}
       width={'100%'}
     >
-      {({ index, style }) => {
+      {({ index, style }: { index: number; style: React.CSSProperties }) => {
         const room = rooms[index];
         return (
           <div

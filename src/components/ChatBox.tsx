@@ -6,10 +6,10 @@ import { Client } from '@stomp/stompjs';
 
 interface Props {
   roomId: string;
+  messages: ChatMessageDTO[];
 }
 
-const ChatBox: React.FC<Props> = ({ roomId }) => {
-  const [messages, setMessages] = useState<ChatMessageDTO[]>([]);
+const ChatBox: React.FC<Props> = ({ roomId, messages }) => {
   const [input, setInput] = useState('');
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -27,7 +27,6 @@ const ChatBox: React.FC<Props> = ({ roomId }) => {
       onConnect: () => {
         client.subscribe(`/topic/messages/${roomId}`, (msg) => {
           const data = JSON.parse(msg.body);
-          setMessages((prev) => [...prev, data]);
           setTimeout(() => scrollToBottom(), 100);
         });
       },
@@ -50,7 +49,6 @@ const ChatBox: React.FC<Props> = ({ roomId }) => {
     if (!Array.isArray(data) || data.length === 0) {
       setHasMore(false);
     } else {
-      setMessages((prev) => [...data.reverse(), ...prev]);
       setPage(pageNum);
       setTimeout(() => scrollToBottom(), 100);
     }
