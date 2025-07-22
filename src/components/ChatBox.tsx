@@ -44,6 +44,7 @@ const ChatBox: React.FC<Props> = ({ roomId, messages }) => {
   }, [roomId]);
 
   const fetchMessages = async (pageNum: number) => {
+    debugger
     const res = await chatApi.getMessages(roomId, pageNum);
     const data = res.data;
     if (!Array.isArray(data) || data.length === 0) {

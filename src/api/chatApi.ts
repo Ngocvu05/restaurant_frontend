@@ -68,3 +68,12 @@ export const chatApi = {
     });
   },
 };
+
+export const fetchMessage = () => {
+  const userId = sessionStorage.getItem('userId');
+  return axiosConfig.get('/history', {
+    headers: {
+      'X-User-Id': userId || '',
+    },
+  });
+};
