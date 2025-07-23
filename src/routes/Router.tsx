@@ -43,10 +43,7 @@ const AppRouter: React.FC = () => {
         path="/home"
         element={<Layout><HomePage /></Layout>}
       />
-      <Route
-        path="/chat"
-        element={<Layout><ChatPage /></Layout>}
-      />
+      
       <Route
         path="/menu"
         element={<Layout><div>Menu Page</div></Layout>}
@@ -55,10 +52,7 @@ const AppRouter: React.FC = () => {
         path="/about"
         element={<Layout><div>About Page</div></Layout>}
       />
-      <Route
-        path="/contact"
-        element={<Layout><div>Contact Page</div></Layout>}
-      />    
+      
 
       {/* Protected user routes */}
       <Route element={<ProtectedRoute />}>
@@ -85,6 +79,14 @@ const AppRouter: React.FC = () => {
         <Route
           path="/bookings-history/:id"
           element={<Layout><BookingDetailPage /></Layout>}
+        />
+        <Route
+          path="/chat"
+          element={<Layout><ChatPage /></Layout>}
+        />
+        <Route
+          path="/contact"
+          element={<Layout><div>Contact Page</div></Layout>}
         />
       </Route>
 

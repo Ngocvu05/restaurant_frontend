@@ -137,9 +137,10 @@ const FloatingChatWidget: React.FC = () => {
           onConnect: () => {
             console.log('✅ Connected to WebSocket');
             client.subscribe(`/topic/room/${sessionId.current}`, (message: IMessage) => {
+               console.log('📥 Received from WebSocket:', message.body);
               try {
                 const body = JSON.parse(message.body);
-                const response = body.response || body.content || body.message;
+                const response = body.response ?? body.content ?? body.message ?? JSON.stringify(body);
 
                 setMessages((prev) => {
                   const updated: ChatMessage[] = [

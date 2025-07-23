@@ -43,7 +43,7 @@ const Header: React.FC = () => {
                 <li><Link to="/menu" className="nav-link">Thực đơn</Link></li>
                 <li><Link to="/booking" className="nav-link">Đặt bàn</Link></li>
                 <li><Link to="/about" className="nav-link">Giới thiệu</Link></li>
-                <li><Link to="/contact" className="nav-link">Liên hệ</Link></li>
+                <li><Link to="/chat" className="nav-link">Liên hệ</Link></li>
               </ul>
 
               {/* User section */}
