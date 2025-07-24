@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { FixedSizeList as List } from 'react-window';
 import { chatApi } from '../api/chatApi';
+import '../assets/css/ChatPage.css';
 
 interface Props {
   selectedRoomId: string | null;
@@ -15,36 +15,27 @@ const RoomList: React.FC<Props> = ({ selectedRoomId, onSelectRoom }) => {
   useEffect(() => {
     const fetchRooms = async () => {
       const res = await chatApi.getUserRooms(userId);
-      console.log(res.data.rooms);
       setRooms(res.data.rooms || []);
     };
     fetchRooms();
   }, []);
 
   return (
-    <List
-      height={window.innerHeight - 100}
-      itemCount={rooms.length}
-      itemSize={60}
-      width={'100%'}
-    >
-      {({ index, style }: { index: number; style: React.CSSProperties }) => {
-        const room = rooms[index];
-        return (
-          <div
-            style={style}
-            className={`room-item ${selectedRoomId === room.id ? 'selected' : ''}`}
-            onClick={() => onSelectRoom(room.id)}
-          >
-            <img src={avatarUrl || '/default-avatar.png'} className="avatar" />
-            <div>
-              <strong>{room.name}</strong>
-              <p className="last-message">{room.lastMessage}</p>
-            </div>
+    <div style={{ paddingTop: '120px' }}>
+      {rooms.map((room) => (
+        <div
+          key={room.id}
+          className={`room-item ${selectedRoomId === room.id ? 'selected' : ''}`}
+          onClick={() => onSelectRoom(room.id)}
+        >
+          <img src={avatarUrl} className="avatar" />
+          <div>
+            <strong>{room.roomName || 'Không tên'}</strong>
+            <p className="last-message">{room.lastMessage?.content || '(Không có tin nhắn)'}</p>
           </div>
-        );
-      }}
-    </List>
+        </div>
+      ))}
+    </div>
   );
 };
 

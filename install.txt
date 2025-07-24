@@ -1,4 +1,5 @@
 npm install lucide-react recharts
+npm install react-datepicker
 
 =================Cài Tailwind==================
 npm install chart.js

@@ -17,6 +17,7 @@ export interface ChatMessageDTO {
   senderType: 'USER' | 'AI' | 'GUEST';
   content: string;
   timestamp: string;
+  createdAt: string;
 }
 
 export interface ChatRoomDTO {

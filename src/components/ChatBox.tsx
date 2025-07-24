@@ -3,6 +3,7 @@ import { FixedSizeList as List } from 'react-window';
 import { chatApi, ChatMessageDTO, ChatMessageRequest } from '../api/chatApi';
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
+import '../assets/css/ChatPage.css';
 
 interface Props {
   roomId: string;
@@ -11,51 +12,41 @@ interface Props {
 
 const ChatBox: React.FC<Props> = ({ roomId, messages }) => {
   const [input, setInput] = useState('');
-  const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
+  const [allMessages, setAllMessages] = useState<ChatMessageDTO[]>([]);
   const listRef = useRef<any>(null);
   const stompClient = useRef<Client | null>(null);
 
   const userId = Number(sessionStorage.getItem('userId'));
-  const token = sessionStorage.getItem('token');
-
-  const connectSocket = () => {
-    const socket = new SockJS('http://localhost:8083/ws');
-    const client = new Client({
-      webSocketFactory: () => socket,
-      reconnectDelay: 5000,
-      onConnect: () => {
-        client.subscribe(`/topic/messages/${roomId}`, (msg) => {
-          const data = JSON.parse(msg.body);
-          setTimeout(() => scrollToBottom(), 100);
-        });
-      },
-    });
-    client.activate();
-    stompClient.current = client;
-  };
 
   useEffect(() => {
-    connectSocket();
-    fetchMessages(0);
-    return () => {
-      stompClient.current?.deactivate();
-    };
-  }, [roomId]);
+    setAllMessages(messages);
+    scrollToBottom();
+  }, [messages]);
 
-  const fetchMessages = async (pageNum: number) => {
-    debugger
-    const res = await chatApi.getMessages(roomId, pageNum);
-    const data = res.data;
-    if (!Array.isArray(data) || data.length === 0) {
-      setHasMore(false);
-    } else {
-      setPage(pageNum);
-      setTimeout(() => scrollToBottom(), 100);
-    }
+  useEffect(() => {
+  const socket = new SockJS('http://localhost:8083/ws');
+  const client = new Client({
+    webSocketFactory: () => socket,
+    reconnectDelay: 5000,
+    onConnect: () => {
+      client.subscribe(`/topic/messages/${roomId}`, (msg) => {
+        const data = JSON.parse(msg.body);
+        setAllMessages((prev) => [...prev, data]);
+        scrollToBottom();
+      });
+    },
+  });
+
+  client.activate();
+  stompClient.current = client;
+
+  return () => {
+    stompClient.current?.deactivate(); // ✅ return cleanup (void)
   };
+}, [roomId]);
 
   const handleSend = async () => {
+    if (!input.trim()) return;
     const payload: ChatMessageRequest = {
       chatRoomId: roomId,
       sessionId: roomId,
@@ -68,24 +59,28 @@ const ChatBox: React.FC<Props> = ({ roomId, messages }) => {
   };
 
   const scrollToBottom = () => {
-    listRef.current?.scrollToItem(messages.length - 1);
+    setTimeout(() => {
+      if (listRef.current) {
+        listRef.current.scrollToItem(allMessages.length - 1);
+      }
+    }, 100);
   };
 
   return (
     <div className="chat-box">
       <List
         height={window.innerHeight - 200}
-        itemCount={messages.length}
+        itemCount={allMessages.length}
         itemSize={60}
         width={'100%'}
         ref={listRef}
       >
         {({ index, style }) => {
-          const msg = messages[index];
+          const msg = allMessages[index];
           return (
             <div style={style} className={`chat-message ${msg.senderType.toLowerCase()}`}>
               <div className="bubble">{msg.content}</div>
-              <div className="timestamp">{msg.timestamp}</div>
+              <div className="timestamp">{msg.createdAt}</div>
             </div>
           );
         }}
