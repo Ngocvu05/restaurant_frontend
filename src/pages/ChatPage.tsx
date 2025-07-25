@@ -1,13 +1,40 @@
-import React, { useState } from 'react';
+// ChatPage.tsx - Enhanced version with all features
+import React, { useEffect, useState, createContext, useContext } from 'react';
 import RoomList from '../components/RoomList';
 import ChatBox from '../components/ChatBox';
 import { ChatMessageDTO } from '../api/chatApi';
 import { chatApi } from '../api/chatApi';
-import '../assets/css/ChatPage.css';
+import '../assets/css/Chat.css';
+
+// Theme Context
+interface ThemeContextType {
+  isDark: boolean;
+  toggleTheme: () => void;
+}
+
+const ThemeContext = createContext<ThemeContextType>({
+  isDark: false,
+  toggleTheme: () => {}
+});
+
+export const useTheme = () => useContext(ThemeContext);
 
 const ChatPage: React.FC = () => {
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessageDTO[]>([]);
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    return saved === 'dark';
+  });
+
+  const toggleTheme = () => {
+    setIsDark(!isDark);
+    localStorage.setItem('theme', !isDark ? 'dark' : 'light');
+  };
+
+  useEffect(() => {
+    document.body.className = isDark ? 'dark-theme' : '';
+  }, [isDark]);
 
   const handleSelectRoom = async (roomId: string) => {
     setSelectedRoomId(roomId);
@@ -17,18 +44,25 @@ const ChatPage: React.FC = () => {
   };
 
   return (
-    <div className="chat-page"  style={{ paddingTop: '120px' }}>
-      <div className="chat-sidebar">
-        <RoomList selectedRoomId={selectedRoomId} onSelectRoom={handleSelectRoom} />
+    <ThemeContext.Provider value={{ isDark, toggleTheme }}>
+      <div className={`chat-page ${isDark ? 'dark' : ''}`} style={{ paddingTop: '80px' }}>
+        <div className="chat-sidebar">
+          <RoomList selectedRoomId={selectedRoomId} onSelectRoom={handleSelectRoom} />
+        </div>
+        <div className="chat-main" style={{ paddingTop: '40px' }}>
+          {selectedRoomId ? (
+            <ChatBox roomId={selectedRoomId} initialMessages={messages} />
+          ) : (
+            <div className="chat-placeholder">
+              🗨️ Chọn phòng để bắt đầu chat
+              <button className="theme-toggle" onClick={toggleTheme}>
+                {isDark ? '☀️' : '🌙'}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
-      <div className="chat-content" style={{ paddingTop: '120px' }}>
-        {selectedRoomId ? (
-          <ChatBox roomId={selectedRoomId} messages={messages} />
-        ) : (
-          <div className="chat-placeholder">🗨️ Chọn phòng để bắt đầu chat</div>
-        )}
-      </div>
-    </div>
+    </ThemeContext.Provider>
   );
 };
 

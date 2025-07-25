@@ -68,6 +68,7 @@ const AdminLayout: React.FC = () => {
     getNotificationApi.getLimited(5)
     .then((res) => {
       const data = res.data;
+      console.log("list notifications:", data);
       if (Array.isArray(data)) {
         setNotifications(data.reverse());
       } else if (data && Array.isArray(data.content)) {
@@ -172,6 +173,7 @@ const AdminLayout: React.FC = () => {
           <li className="nav-item"><Link to="/admin/dishes" className="nav-link text-white">Món ăn</Link></li>
           <li className="nav-item"><Link to="/admin/bookings" className="nav-link text-white">Đặt bàn</Link></li>
           <li className="nav-item"><Link to="/admin/users" className="nav-link text-white">Người dùng</Link></li>
+          <li className="nav-item"><Link to="/admin/chat-support" className="nav-link text-white">Phản hồi chat</Link></li>
         </ul>
       </nav>
 

@@ -244,6 +244,7 @@ const FloatingChatWidget: React.FC = () => {
         userId: isGuest ? undefined : Number(userId),
         message: messageToSend,
         senderType: isGuest ? 'GUEST' : 'USER',
+        fileSize: 0 // Add this line
       } as const;
 
       if (token && userId) {

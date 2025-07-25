@@ -27,7 +27,6 @@ const AdminNotificationPage = () => {
 
   const fetchNotifications = async (): Promise<NotificationResponse> => {
     const response = await axiosConfig.get(`/admin/notifications/?page=${page}&size=10`);
-    console.log("notification respone:",response.data);
     return response.data;
   };
 

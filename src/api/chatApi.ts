@@ -5,7 +5,11 @@ export interface ChatMessageRequest {
   sessionId: string;
   userId?: number;
   message: string;
-  senderType: 'USER' | 'ASSISTANT' | 'GUEST';
+  fileUrl?: string;
+  fileName?: string;
+  fileType?: string;
+  fileSize?: number
+  senderType: 'USER' | 'ASSISTANT' | 'GUEST' | 'ADMIN'; // Thêm ADMIN để phân biệt tin nhắn từ admin
 }
 
 export interface ChatMessageResponse {
@@ -18,6 +22,11 @@ export interface ChatMessageDTO {
   content: string;
   timestamp: string;
   createdAt: string;
+  messageStatus: 'SENT' | 'RECEIVED' | 'READ';
+  messageType: 'TEXT' | 'IMAGE' | 'FILE';
+  senderName?: string;
+  isRead: boolean;
+  response?: string;
 }
 
 export interface ChatRoomDTO {
