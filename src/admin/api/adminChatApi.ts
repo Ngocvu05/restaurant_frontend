@@ -41,6 +41,19 @@ export const adminChatApi = {
     );
   },
 
+  getMessagesByChatRoom: (roomId: string, page: number, size = 10) => {
+    const adminId = getAdminId();
+    if (!adminId) {
+      return Promise.reject(new Error('Admin ID not found in sessionStorage.'));
+    }
+    
+    return axiosConfig.get(
+      `/chat/${roomId}?page=${page}&size=${size}`, 
+      {}, // Không cần body
+    );
+  },
+
+
   /**
    * API để admin gửi tin nhắn cho khách hàng.
    * Sử dụng endpoint chung nhưng với senderType là 'ADMIN'.
@@ -59,7 +72,7 @@ export const adminChatApi = {
       senderType: 'ADMIN', // Quan trọng: Đánh dấu tin nhắn này từ Admin
     };
 
-    return axiosConfig.post('/chat/send', payload);
+    return axiosConfig.post('/admin/chat/send', payload);
   },
 
   /**

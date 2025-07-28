@@ -1,4 +1,3 @@
-// ChatBox.tsx - Enhanced version with all features
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { VariableSizeList as List } from 'react-window';
 import { chatApi, ChatMessageDTO, ChatMessageRequest } from '../api/chatApi';
@@ -12,7 +11,6 @@ interface Props {
   initialMessages: ChatMessageDTO[];
 }
 
-// Enhanced message interface with new features
 interface EnhancedChatMessage extends ChatMessageDTO {
   reactions?: { [emoji: string]: string[] }; // emoji -> user IDs
   isEdited?: boolean;
@@ -477,6 +475,7 @@ const ChatBox: React.FC<Props> = ({ roomId, initialMessages }) => {
       onConnect: () => {
         // Subscribe to messages
         client.subscribe(`/topic/room/${roomId}`, (msg) => {
+          console.log("roomId:", roomId, "Message received:", msg);
           const newMsg = JSON.parse(msg.body);
           const parsed: EnhancedChatMessage = {
             content: newMsg.response || newMsg.content,
@@ -501,7 +500,7 @@ const ChatBox: React.FC<Props> = ({ roomId, initialMessages }) => {
         });
 
         // Subscribe to typing indicators
-        client.subscribe(`/topic/typing/${roomId}`, (msg) => {
+        client.subscribe(`/topic/room/${roomId}`, (msg) => {
           const { userId: typingUserId, isTyping: userIsTyping } = JSON.parse(msg.body);
           setTypingUsers(prev => {
             if (userIsTyping && !prev.includes(typingUserId)) {

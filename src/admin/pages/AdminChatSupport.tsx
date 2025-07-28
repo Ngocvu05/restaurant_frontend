@@ -9,13 +9,14 @@ interface ChatRoom {
   roomId: string;
   roomName: string;
   userId: number;
+  userName: string;
   lastMessage?: {
     content: string;
     senderName: string;
   };
   updatedAt: string;
-  resolved: boolean; // Trạng thái phòng đã được xử lý hay chưa
-  adminId?: number;  // ID của admin đang xử lý
+  resolved: boolean;
+  adminId?: number;
 }
 
 const AdminChatSupport: React.FC = () => {
@@ -49,7 +50,7 @@ const AdminChatSupport: React.FC = () => {
       toast.success(`Đã tham gia phòng: ${room.roomName}`);
       // Điều hướng đến trang chat chính
       // Trang /chat cần được thiết kế để nhận roomId và tải cuộc trò chuyện
-      navigate(`/chat`); 
+      navigate(`/admin/chat-support/${room.roomId}`); 
     } catch (error: any) {
       // Dựa vào mã lỗi từ backend để hiển thị thông báo chính xác
       const errorMessage = error.response?.data?.message || 'Không thể tham gia phòng chat này.';
@@ -79,7 +80,7 @@ const AdminChatSupport: React.FC = () => {
               <thead>
                 <tr>
                   <th>Tên phòng</th>
-                  <th>Người dùng (ID)</th>
+                  <th>Người dùng</th>
                   <th>Trạng thái</th>
                   <th>Admin đang xử lý</th>
                   <th>Cập nhật lần cuối</th>
@@ -95,7 +96,7 @@ const AdminChatSupport: React.FC = () => {
                   rooms.map(room => (
                     <tr key={room.roomId} className={room.resolved ? 'table-secondary' : ''}>
                       <td>{room.roomName}</td>
-                      <td>{room.userId}</td>
+                      <td>{room.userName}</td>
                       <td>
                         {room.resolved 
                           ? <span className="badge bg-success">Đã xử lý</span>

@@ -18,7 +18,7 @@ export interface ChatMessageResponse {
 }
 
 export interface ChatMessageDTO {
-  senderType: 'USER' | 'AI' | 'GUEST';
+  senderType: 'USER' | 'AI' | 'GUEST' | 'ADMIN';
   content: string;
   timestamp: string;
   createdAt: string;

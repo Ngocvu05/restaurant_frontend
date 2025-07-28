@@ -22,6 +22,7 @@ import AdminDishFormPage from '../admin/pages/AdminDishFormPage';
 import AdminNotificationPage from '../admin/pages/AdminNotificationPage';
 import BookingDetailPage from '../pages/BookingDetailPage';
 import AdminChatSupport from '../admin/pages/AdminChatSupport';
+import AdminChatSupportDetails from '../admin/pages/AdminChatSupportDetails';
 
 const AppRouter: React.FC = () => {
   return (
@@ -105,6 +106,7 @@ const AppRouter: React.FC = () => {
           <Route path="users" element={<AdminUserPage />} />
           <Route path="/admin/notifications" element={<AdminNotificationPage />} />
           <Route path="/admin/chat-support" element={<AdminChatSupport />} />
+          <Route path="/admin/chat-support/:roomId" element={<AdminChatSupportDetails />} />
           {/* Add other admin pages here */}
         </Route>
       </Route>
