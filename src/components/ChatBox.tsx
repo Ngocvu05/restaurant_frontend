@@ -7,7 +7,7 @@ import { useTheme } from '../pages/ChatPage';
 import '../assets/css/Chat.css';
 
 interface Props {
-  roomId: string;
+  sessionId: string;
   initialMessages: ChatMessageDTO[];
 }
 
@@ -285,7 +285,7 @@ const MessageItem = React.memo(({ index, style, message }: {
   );
 });
 
-const ChatBox: React.FC<Props> = ({ roomId, initialMessages }) => {
+const ChatBox: React.FC<Props> = ({ sessionId, initialMessages }) => {
   const [messages, setMessages] = useState<EnhancedChatMessage[]>(initialMessages);
   const [input, setInput] = useState('');
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
@@ -302,7 +302,7 @@ const ChatBox: React.FC<Props> = ({ roomId, initialMessages }) => {
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const itemHeights = useRef<{ [key: number]: number }>({});
   const { isDark } = useTheme();
-
+  
   // Dynamic height calculation
   const getItemHeight = (message: EnhancedChatMessage, width: number = 300): number => {
     const contentLength = message.content?.length || 0;
@@ -377,7 +377,7 @@ const ChatBox: React.FC<Props> = ({ roomId, initialMessages }) => {
       // Send typing indicator to server
       if (stompClient.current?.connected) {
         stompClient.current.publish({
-          destination: `/app/typing/${roomId}`,
+          destination: `/app/typing/${sessionId}`,
           body: JSON.stringify({ userId, isTyping: true })
         });
       }
@@ -391,12 +391,12 @@ const ChatBox: React.FC<Props> = ({ roomId, initialMessages }) => {
       setIsTyping(false);
       if (stompClient.current?.connected) {
         stompClient.current.publish({
-          destination: `/app/typing/${roomId}`,
+          destination: `/app/typing/${sessionId}`,
           body: JSON.stringify({ userId, isTyping: false })
         });
       }
     }, 3000);
-  }, [isTyping, roomId, userId]);
+  }, [isTyping, sessionId, userId]);
 
   // File upload handler
   const handleFileUpload = async (file: File) => {
@@ -410,7 +410,7 @@ const ChatBox: React.FC<Props> = ({ roomId, initialMessages }) => {
       // Create FormData for file upload
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('roomId', roomId);
+      formData.append('roomId', sessionId);
       
       // Upload file (you'll need to implement this API endpoint)
       const uploadResponse = await fetch('/api/upload', {
@@ -422,8 +422,8 @@ const ChatBox: React.FC<Props> = ({ roomId, initialMessages }) => {
       
       // Send message with file
       const payload: ChatMessageRequest = {
-        chatRoomId: roomId,
-        sessionId: roomId,
+        chatRoomId: sessionId,
+        sessionId: sessionId,
         userId,
         message: file.name,
         senderType: 'USER',
@@ -447,7 +447,7 @@ const ChatBox: React.FC<Props> = ({ roomId, initialMessages }) => {
       setMessages(initialMessages);
       setShouldAutoScroll(true);
     }
-  }, [roomId]);
+  }, [sessionId]);
 
   useEffect(() => {
     if (shouldAutoScroll && !isUserScrolling) {
@@ -474,11 +474,16 @@ const ChatBox: React.FC<Props> = ({ roomId, initialMessages }) => {
       reconnectDelay: 5000,
       onConnect: () => {
         // Subscribe to messages
-        client.subscribe(`/topic/room/${roomId}`, (msg) => {
-          console.log("roomId:", roomId, "Message received:", msg);
+        client.subscribe(`/topic/room/${sessionId}`, (msg) => {
+          console.log("roomId:", sessionId, "Message received:", msg);
           const newMsg = JSON.parse(msg.body);
+          if(newMsg.userId === userId){
+            return;
+          }
+
           const parsed: EnhancedChatMessage = {
             content: newMsg.response || newMsg.content,
+            userId: newMsg.userId,
             senderType: newMsg.senderType,
             senderName: newMsg.senderName || 'AI',
             createdAt: newMsg.createdAt || new Date().toISOString(),
@@ -500,7 +505,7 @@ const ChatBox: React.FC<Props> = ({ roomId, initialMessages }) => {
         });
 
         // Subscribe to typing indicators
-        client.subscribe(`/topic/room/${roomId}`, (msg) => {
+        client.subscribe(`/topic/room/${sessionId}`, (msg) => {
           const { userId: typingUserId, isTyping: userIsTyping } = JSON.parse(msg.body);
           setTypingUsers(prev => {
             if (userIsTyping && !prev.includes(typingUserId)) {
@@ -522,21 +527,22 @@ const ChatBox: React.FC<Props> = ({ roomId, initialMessages }) => {
         clearTimeout(typingTimeoutRef.current);
       }
     };
-  }, [roomId]);
+  }, [sessionId]);
 
   const handleSend = useCallback(async () => {
     if (!input.trim()) return;
 
     const payload: ChatMessageRequest = {
-      chatRoomId: roomId,
-      sessionId: roomId,
+      chatRoomId: sessionId,
+      sessionId: sessionId,
       userId,
       message: input.trim(),
       senderType: "USER",
-      fileSize: 0 // Add this line
+      fileSize: 0
     };
 
     const fakeMessage: EnhancedChatMessage = {
+      userId: 0,
       content: input,
       senderType: 'USER',
       senderName: 'Bạn',
@@ -560,7 +566,7 @@ const ChatBox: React.FC<Props> = ({ roomId, initialMessages }) => {
     }
     
     await chatApi.sendMessage(payload);
-  }, [input, roomId, userId]);
+  }, [input, sessionId, userId]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -592,7 +598,7 @@ const ChatBox: React.FC<Props> = ({ roomId, initialMessages }) => {
     <div className={`chat-box ${isDark ? 'dark' : ''}`}>
       {/* Chat header */}
       <div className="chat-header">
-        <h4>Chat Room</h4>
+        <h4>Chat Room - Chat {sessionId}</h4>
         <div className="header-actions">
           <button className="header-btn" title="Tìm kiếm">🔍</button>
           <button className="header-btn" title="Thông tin phòng">ℹ️</button>

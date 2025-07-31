@@ -21,8 +21,9 @@ interface LastMessage {
 interface Room {
   id: number;
   roomId: string;
+  sessionId: string;
   roomName: string;
-  roomType: string;
+  roomType: 'PRIVATE' | 'AI_SUPPORT' | 'GROUP';
   description?: string;
   isActive: string;
   createdAt: string;
@@ -125,9 +126,9 @@ const RoomList: React.FC<Props> = ({ selectedRoomId, onSelectRoom }) => {
         {filteredRooms.length > 0 ? (
           filteredRooms.map((room) => (
             <div
-              key={room.roomId || room.id}
+              key={room.sessionId || room.id}
               className={`room-item ${selectedRoomId === room.roomId ? 'selected' : ''}`}
-              onClick={() => onSelectRoom(room.roomId)}
+              onClick={() => onSelectRoom(room.sessionId || room.roomId)}
             >
               <div className="avatar-container">
                 <img src={avatarUrl} className="avatar" alt="Avatar" />

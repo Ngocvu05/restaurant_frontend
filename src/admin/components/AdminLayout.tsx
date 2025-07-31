@@ -8,8 +8,8 @@ import 'react-toastify/dist/ReactToastify.css';
 import Modal from 'react-bootstrap/Modal';
 import Button from 'react-bootstrap/Button';
 
-import { connectWebSocket } from '../../admin/api/WebSocket';
-import { searchApi  } from '../../admin/api/searchApi';
+import { connectAllWebSockets, disconnectAllWebSockets } from '../../admin/api/WebSocket';
+import { searchApi } from '../../admin/api/searchApi';
 import { getNotificationApi } from '../../admin/api/getNotificationApi';
 
 interface Notification {
@@ -53,10 +53,21 @@ const AdminLayout: React.FC = () => {
     const username = sessionStorage.getItem('username');
     const avatar = sessionStorage.getItem('avatar');
     const token = sessionStorage.getItem('token');
-    console.log(`User Info: ${username}, Avatar: ${avatar}, Token: ${token}`);
+    const adminId = sessionStorage.getItem('adminId') || sessionStorage.getItem('userId');
+    
+    console.log(`User Info: ${username}, Avatar: ${avatar}, Token: ${token}, AdminId: ${adminId}`);
+    
     if (!username) {
       navigate('/login');
       return;
+    }
+
+    // Lưu adminId nếu chưa có (có thể extract từ token hoặc API)
+    if (!adminId) {
+      // TODO: Lấy adminId từ API hoặc decode từ JWT token
+      // const extractedAdminId = extractAdminIdFromToken(token);
+      // sessionStorage.setItem('adminId', extractedAdminId);
+      console.warn('⚠️ AdminId not found in sessionStorage');
     }
 
     setUserInfo({
@@ -64,33 +75,94 @@ const AdminLayout: React.FC = () => {
       avatarUrl: avatar ? avatar : '/assets/images/avatar.png',
     });
 
-    // 🟢 Gọi API để lấy thông báo cũ
+    // Lấy thông báo cũ từ API
     getNotificationApi.getLimited(5)
-    .then((res) => {
-      const data = res.data;
-      console.log("list notifications:", data);
-      if (Array.isArray(data)) {
-        setNotifications(data.reverse());
-      } else if (data && Array.isArray(data.content)) {
-        setNotifications(data.content.reverse());
-      } else {
-        console.warn('Unexpected notification format:', data);
+      .then((res) => {
+        const data = res.data;
+        console.log("📥 List notifications:", data);
+        if (Array.isArray(data)) {
+          setNotifications(data.reverse());
+        } else if (data && Array.isArray(data.content)) {
+          setNotifications(data.content.reverse());
+        } else {
+          console.warn('⚠️ Unexpected notification format:', data);
+        }
+      })
+      .catch(error => {
+        console.error('❌ Error fetching notifications:', error.message);
+      });
+
+    // Kết nối tất cả WebSocket services
+    connectAllWebSockets(username, {
+      // Callback cho thông báo từ User Service (port 8081)
+      onUserNotificationReceived: (notification) => {
+        setNotifications((prev) => [notification, ...prev]);
+        toast.info(`🔔 ${notification.title}`, {
+          position: 'top-right',
+          autoClose: 3000,
+          hideProgressBar: false,
+          pauseOnHover: true,
+          closeOnClick: true,
+        });
+      },
+      
+      // Callback cho thông báo từ Chat Service (port 8083)
+      onChatNotificationReceived: (notification) => {
+        setNotifications((prev) => [notification, ...prev]);
+        toast.info(`💬 ${notification.title}`, {
+          position: 'top-right',
+          autoClose: 3000,
+          hideProgressBar: false,
+          pauseOnHover: true,
+          closeOnClick: true,
+        });
+      },
+      
+      // Callback cho thông báo riêng tư của admin (alerts)
+      onAdminAlertReceived: (alertMessage) => {
+        const alertNotification = {
+          id: Date.now(),
+          title: 'Thông báo hệ thống',
+          content: alertMessage,
+          isRead: false,
+          createdAt: new Date().toISOString()
+        };
+        
+        setNotifications((prev) => [alertNotification, ...prev]);
+        toast.success(`🚨 ${alertMessage}`, {
+          position: 'top-right',
+          autoClose: 5000,
+          hideProgressBar: false,
+          pauseOnHover: true,
+          closeOnClick: true,
+        });
+      },
+      
+      // Callback cho thông báo broadcast cho tất cả admin
+      onAdminBroadcastReceived: (broadcastMessage) => {
+        const broadcastNotification = {
+          id: Date.now() + Math.random(), // Tránh trùng ID
+          title: 'Thông báo Admin',
+          content: broadcastMessage,
+          isRead: false,
+          createdAt: new Date().toISOString()
+        };
+        
+        setNotifications((prev) => [broadcastNotification, ...prev]);
+        toast.info(`📢 ${broadcastMessage}`, {
+          position: 'top-right',
+          autoClose: 4000,
+          hideProgressBar: false,
+          pauseOnHover: true,
+          closeOnClick: true,
+        });
       }
-    })
-    .catch(error => {
-      console.error('❌ Error fetching notifications:', error.message);
     });
 
-    connectWebSocket(username, (msg) => {
-      setNotifications((prev) => [msg, ...prev]);
-      toast.info(`🔔 ${msg.title}`, {
-        position: 'top-right',
-        autoClose: 3000,
-        hideProgressBar: false,
-        pauseOnHover: true,
-        closeOnClick: true,
-      });
-    });
+    // Cleanup khi component unmount
+    return () => {
+      disconnectAllWebSockets();
+    };
   }, [navigate]);
 
   // Search functionality
@@ -119,7 +191,7 @@ const AdminLayout: React.FC = () => {
     if (value.length > 1) {
       try {
         const res = await searchApi.searchSuggestions(value);
-        setSearchSuggestions(res.data.slice(0, 5)); // lấy tối đa 5 gợi ý
+        setSearchSuggestions(res.data.slice(0, 5));
       } catch (error) {
         console.error('❌ Error fetching suggestions:', error);
       }
@@ -131,11 +203,11 @@ const AdminLayout: React.FC = () => {
   const handleSuggestionClick = (suggestion: Dish) => {
     setSearchKeyword(suggestion.name);
     setSearchSuggestions([]);
-    // Có thể navigate đến trang chi tiết món ăn
     navigate(`/admin/dishes/${suggestion.id}`);
   };
 
   const handleLogout = () => {
+    disconnectAllWebSockets(); // Disconnect all WebSocket connections
     sessionStorage.clear();
     navigate('/');
   };
@@ -153,6 +225,8 @@ const AdminLayout: React.FC = () => {
             n.id === selectedNotification.id ? { ...n, isRead: true } : n
           )
         );
+      }).catch(error => {
+        console.error('❌ Error marking notification as read:', error);
       });
     }
     setShowModal(false);
@@ -227,8 +301,7 @@ const AdminLayout: React.FC = () => {
 
           <ul className="navbar-nav ms-auto">
             <li className="nav-item dropdown mx-2">
-              {/* Notification bell dropdown trigger */}
-              <button className="nav-link btn btn-link p-0 border-0 bg-transparent" id="alertsDropdown" data-bs-toggle="dropdown" aria-expanded="false" type="button">
+              <button className="nav-link btn btn-link p-0 border-0 bg-transparent position-relative" id="alertsDropdown" data-bs-toggle="dropdown" aria-expanded="false" type="button">
                 <i className="bi bi-bell fs-5"></i>
                 {notifications.some(n => !n.isRead) && (
                   <span className="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle">
@@ -243,8 +316,15 @@ const AdminLayout: React.FC = () => {
                     <span
                       className={`dropdown-item ${!n.isRead ? 'fw-bold' : ''}`}
                       onClick={() => handleOpenNotification(n)}
+                      style={{ cursor: 'pointer' }}
                     >
-                      {n.title}
+                      <div className="d-flex justify-content-between align-items-start">
+                        <div className="flex-grow-1">
+                          <div className="fw-medium">{n.title}</div>
+                          <small className="text-muted">{n.content.substring(0, 50)}...</small>
+                        </div>
+                        {!n.isRead && <span className="badge bg-primary ms-2">New</span>}
+                      </div>
                     </span>
                   </li>
                 ))}
@@ -254,7 +334,6 @@ const AdminLayout: React.FC = () => {
             </li>
 
             <li className="nav-item dropdown">
-              {/* User dropdown trigger */}
               <button className="nav-link dropdown-toggle d-flex align-items-center btn btn-link p-0 border-0 bg-transparent" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" type="button">
                 <img src={userInfo.avatarUrl} className="rounded-circle" width="32" height="32" alt="avatar" />
                 <span className="ms-2 d-none d-lg-inline text-dark">{userInfo.username}</span>
@@ -337,11 +416,18 @@ const AdminLayout: React.FC = () => {
             <Modal.Title>{selectedNotification?.title}</Modal.Title>
           </Modal.Header>
           <Modal.Body>
-            <p>{selectedNotification?.content}</p>
-            <small className="text-muted">{selectedNotification?.createdAt}</small>
+            <div className="mb-3">
+              <p className="mb-2">{selectedNotification?.content}</p>
+              <small className="text-muted">
+                <i className="bi bi-clock me-1"></i>
+                {selectedNotification?.createdAt && new Date(selectedNotification.createdAt).toLocaleString('vi-VN')}
+              </small>
+            </div>
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="secondary" onClick={handleCloseModal}>Đóng</Button>
+            <Button variant="secondary" onClick={handleCloseModal}>
+              Đóng
+            </Button>
           </Modal.Footer>
         </Modal>
       </div>

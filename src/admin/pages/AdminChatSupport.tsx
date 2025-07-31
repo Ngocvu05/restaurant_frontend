@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { adminChatApi } from '../api/adminChatApi';
+import { stat } from 'fs';
 
 // Định nghĩa cấu trúc của một phòng chat
 interface ChatRoom {
   id: number;
   roomId: string;
+  sessionId: string;
   roomName: string;
   userId: number;
   userName: string;
@@ -50,7 +52,12 @@ const AdminChatSupport: React.FC = () => {
       toast.success(`Đã tham gia phòng: ${room.roomName}`);
       // Điều hướng đến trang chat chính
       // Trang /chat cần được thiết kế để nhận roomId và tải cuộc trò chuyện
-      navigate(`/admin/chat-support/${room.roomId}`); 
+      navigate(`/admin/chat-support/${room.roomId}`,{
+        state: {
+          roomId: room.roomId, 
+          sessionId: room.sessionId,
+        }
+      }); 
     } catch (error: any) {
       // Dựa vào mã lỗi từ backend để hiển thị thông báo chính xác
       const errorMessage = error.response?.data?.message || 'Không thể tham gia phòng chat này.';

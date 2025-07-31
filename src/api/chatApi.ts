@@ -18,6 +18,7 @@ export interface ChatMessageResponse {
 }
 
 export interface ChatMessageDTO {
+  userId: number;
   senderType: 'USER' | 'AI' | 'GUEST' | 'ADMIN';
   content: string;
   timestamp: string;
@@ -36,6 +37,7 @@ export interface ChatRoomDTO {
     name: string;
     avatarUrl?: string;
   };
+  roomType?: string;
   lastMessage: string;
 }
 

@@ -1,4 +1,3 @@
-// ChatPage.tsx - Enhanced version with all features
 import React, { useEffect, useState, createContext, useContext } from 'react';
 import RoomList from '../components/RoomList';
 import ChatBox from '../components/ChatBox';
@@ -36,9 +35,9 @@ const ChatPage: React.FC = () => {
     document.body.className = isDark ? 'dark-theme' : '';
   }, [isDark]);
 
-  const handleSelectRoom = async (roomId: string) => {
-    setSelectedRoomId(roomId);
-    const res = await chatApi.getMessages(roomId, 0);
+  const handleSelectRoom = async (sessionId: string) => {
+    setSelectedRoomId(sessionId);
+    const res = await chatApi.getMessages(sessionId, 0);
     const raw = Array.isArray(res.data?.content) ? res.data.content : res.data;
     setMessages(raw.reverse());
   };
@@ -51,7 +50,7 @@ const ChatPage: React.FC = () => {
         </div>
         <div className="chat-main" style={{ paddingTop: '40px' }}>
           {selectedRoomId ? (
-            <ChatBox roomId={selectedRoomId} initialMessages={messages} />
+            <ChatBox sessionId={selectedRoomId} initialMessages={messages} />
           ) : (
             <div className="chat-placeholder">
               🗨️ Chọn phòng để bắt đầu chat

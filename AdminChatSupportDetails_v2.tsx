@@ -404,14 +404,12 @@ const AdminMessageItem = React.memo(({ index, style, message }: {
   );
 });
 
-const AdminChatSupportDetails: React.FC<Props> = ({ roomId: propRoomId, sessionId: propSessionId }) => {
+const AdminChatSupportDetails: React.FC<Props> = ({ roomId: propRoomId }) => {
   const { roomId: paramRoomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
   const location = useLocation(); 
-  
-  // Ưu tiên: props > location.state > URL params
   const roomId = propRoomId || paramRoomId;
-  const sessionId = propSessionId || location.state?.sessionId || roomId;
+  const sessionId = location.state?.sessionId;
 
   const [messages, setMessages] = useState<EnhancedChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -430,18 +428,6 @@ const AdminChatSupportDetails: React.FC<Props> = ({ roomId: propRoomId, sessionI
   const adminId = Number(sessionStorage.getItem('userId'));
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const itemHeights = useRef<{ [key: number]: number }>({});
-  
-  // Debug logging
-  useEffect(() => {
-    console.log('DEBUG - Component mounted with:', {
-      roomId,
-      sessionId,
-      propRoomId,
-      propSessionId,
-      paramRoomId,
-      locationState: location.state
-    });
-  }, [roomId, sessionId, propRoomId, propSessionId, paramRoomId, location.state]);
 
   // Dynamic height calculation
   const getItemHeight = (message: EnhancedChatMessage, width: number = 300): number => {
@@ -510,20 +496,15 @@ const AdminChatSupportDetails: React.FC<Props> = ({ roomId: propRoomId, sessionI
 
   // Load initial data
   useEffect(() => {
-    if (!roomId) {
-      console.warn('No roomId provided');
-      setLoading(false);
-      return;
-    }
+    if (!roomId || !sessionId) return;
 
     const loadInitialData = async () => {
       try {
         setLoading(true);
-        console.log('Loading messages for roomId:', roomId);
         
         // Load messages
         const messagesRes = await adminChatApi.getMessagesByChatRoom(roomId, 0, 50);
-        console.log('Loaded messages response:', messagesRes);
+        console.log('Loaded messages:', messagesRes.data);
         
         if (messagesRes.data && messagesRes.data.content) {
           const enhancedMessages: EnhancedChatMessage[] = messagesRes.data.content.map((msg: any) => ({
@@ -542,38 +523,27 @@ const AdminChatSupportDetails: React.FC<Props> = ({ roomId: propRoomId, sessionI
             fileType: msg.fileType,
             reactions: msg.reactions || {}
           }));
-          console.log('Enhanced messages:', enhancedMessages);
           setMessages(enhancedMessages.reverse());
-        } else {
-          console.warn('No messages content in response');
-          setMessages([]);
         }
 
         // Join room as admin
-        try {
-          await adminChatApi.joinRoom(roomId);
-          console.log('Successfully joined room');
-          toast.success('Đã tham gia phòng chat thành công');
-        } catch (joinError) {
-          console.warn('Failed to join room:', joinError);
-          // Don't block the loading process if join fails
-        }
+        await adminChatApi.joinRoom(roomId);
+        toast.success('Đã tham gia phòng chat thành công');
         
       } catch (error: any) {
         console.error('Error loading chat data:', error);
         toast.error('Không thể tải dữ liệu chat');
+        navigate('/admin/chat-support');
       } finally {
         setLoading(false);
       }
     };
 
     loadInitialData();
-  }, [roomId, navigate]);
+  }, [roomId, sessionId, navigate]);
 
   // Handle typing indicators
   const handleTyping = useCallback(() => {
-    if (!sessionId) return;
-
     if (!isTyping) {
       setIsTyping(true);
       if (stompClient.current?.connected) {
@@ -590,7 +560,7 @@ const AdminChatSupportDetails: React.FC<Props> = ({ roomId: propRoomId, sessionI
 
     typingTimeoutRef.current = setTimeout(() => {
       setIsTyping(false);
-      if (stompClient.current?.connected && sessionId) {
+      if (stompClient.current?.connected) {
         stompClient.current.publish({
           destination: `/app/typing/${sessionId}`,
           body: JSON.stringify({ userId: adminId, isTyping: false })
@@ -606,16 +576,11 @@ const AdminChatSupportDetails: React.FC<Props> = ({ roomId: propRoomId, sessionI
       return;
     }
 
-    if (!roomId || !sessionId) {
-      toast.error('Thiếu thông tin phòng chat');
-      return;
-    }
-
     setUploading(true);
     try {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('roomId', roomId);
+      formData.append('roomId', roomId!);
       
       const uploadResponse = await fetch('/api/upload', {
         method: 'POST',
@@ -625,8 +590,8 @@ const AdminChatSupportDetails: React.FC<Props> = ({ roomId: propRoomId, sessionI
       const { fileUrl } = await uploadResponse.json();
       
       const payload: ChatMessageRequest = {
-        chatRoomId: roomId,
-        sessionId: sessionId,
+        chatRoomId: roomId!,
+        sessionId: sessionId!,
         userId: adminId,
         message: file.name,
         senderType: 'ADMIN',
@@ -646,110 +611,61 @@ const AdminChatSupportDetails: React.FC<Props> = ({ roomId: propRoomId, sessionI
     }
   };
 
-  // WebSocket setup - FIXED VERSION
+  // WebSocket setup
   useEffect(() => {
-    if (!sessionId) {
-      console.warn('No sessionId for WebSocket connection');
-      return;
-    }
-
-    console.log('Setting up WebSocket connection for sessionId:', sessionId);
+    if (!roomId) return;
 
     const socket = new SockJS('http://localhost:8083/ws');
     const client = new Client({
       webSocketFactory: () => socket,
       reconnectDelay: 5000,
       onConnect: () => {
-        console.log('Admin connected to WebSocket, subscribing to:', sessionId);
+        console.log('Admin connected to WebSocket, subscribing to room:', sessionId);
         
         // Subscribe to room messages
-        const messageSubscription = client.subscribe(`/topic/room/${sessionId}`, (msg) => {
-          console.log("Received message for sessionId:", sessionId, "Message:", msg.body);
-          try {
-            const messageData = JSON.parse(msg.body);
-
-            if(messageData.userId === adminId){
-              return;
-            }
-            
-            // Check if this is a typing indicator or regular message
-            if (messageData.messageType === 'TYPING' || messageData.isTyping !== undefined) {
-              // Handle typing indicator
-              const { userId: typingUserId, isTyping: userIsTyping } = messageData;
-              if (typingUserId !== adminId) {
-                setTypingUsers(prev => {
-                  if (userIsTyping && !prev.includes(typingUserId)) {
-                    return [...prev, typingUserId];
-                  } else if (!userIsTyping) {
-                    return prev.filter(id => id !== typingUserId);
-                  }
-                  return prev;
-                });
-              }
-            } else {
-              // Handle regular message
-              const parsed: EnhancedChatMessage = {
-                content: messageData.response || messageData.content || messageData.message,
-                userId: messageData.userId,
-                senderType: messageData.senderType,
-                senderName: messageData.senderName || (messageData.senderType === 'ADMIN' ? 'Admin' : 'Khách hàng'),
-                createdAt: messageData.createdAt || new Date().toISOString(),
-                timestamp: messageData.timestamp || new Date().toISOString(),
-                messageStatus: messageData.messageStatus || 'RECEIVED',
-                messageType: messageData.messageType || 'TEXT',
-                isRead: true,
-                response: messageData.response || '',
-                fileUrl: messageData.fileUrl,
-                fileName: messageData.fileName,
-                fileSize: messageData.fileSize,
-                fileType: messageData.fileType,
-                reactions: messageData.reactions || {}
-              };
-              
-              console.log('Adding new message to state:', parsed);
-              setMessages(prev => {
-                console.log('Previous messages count:', prev.length);
-                const newMessages = [...prev, parsed];
-                console.log('New messages count:', newMessages.length);
-                return newMessages;
-              });
-              setShouldAutoScroll(true);
-              setIsUserScrolling(false);
-            }
-          } catch (error) {
-            console.error('Error parsing WebSocket message:', error);
-          }
+        client.subscribe(`/topic/room/${sessionId}`, (msg) => {
+          console.log("roomId:", sessionId, "Message received:", msg);
+          const newMsg = JSON.parse(msg.body);
+          const parsed: EnhancedChatMessage = {
+            content: newMsg.response || newMsg.content || newMsg.message,
+            senderType: newMsg.senderType,
+            senderName: newMsg.senderName || (newMsg.senderType === 'ADMIN' ? 'Admin' : 'Khách hàng'),
+            createdAt: newMsg.createdAt || new Date().toISOString(),
+            timestamp: newMsg.timestamp || new Date().toISOString(),
+            messageStatus: newMsg.messageStatus || 'RECEIVED',
+            messageType: newMsg.messageType || 'TEXT',
+            isRead: true,
+            response: newMsg.response || '',
+            fileUrl: newMsg.fileUrl,
+            fileName: newMsg.fileName,
+            fileSize: newMsg.fileSize,
+            fileType: newMsg.fileType,
+            reactions: newMsg.reactions || {}
+          };
+          
+          setMessages(prev => [...prev, parsed]);
+          setShouldAutoScroll(true);
+          setIsUserScrolling(false);
         });
 
-        // Try to subscribe to separate typing endpoint if available
-        try {
-          const typingSubscription = client.subscribe(`/topic/typing/${sessionId}`, (msg) => {
-            console.log("Received typing message for sessionId:", sessionId, "Message:", msg.body);
-            try {
-              const { userId: typingUserId, isTyping: userIsTyping } = JSON.parse(msg.body);
-              if (typingUserId !== adminId) {
-                setTypingUsers(prev => {
-                  if (userIsTyping && !prev.includes(typingUserId)) {
-                    return [...prev, typingUserId];
-                  } else if (!userIsTyping) {
-                    return prev.filter(id => id !== typingUserId);
-                  }
-                  return prev;
-                });
+        // Subscribe to typing indicators
+        client.subscribe(`/topic/room/${sessionId}`, (msg) => {
+            console.log("roomId:", sessionId, "Typing message received:", msg);
+          const { userId: typingUserId, isTyping: userIsTyping } = JSON.parse(msg.body);
+          if (typingUserId !== adminId) { // Don't show own typing
+            setTypingUsers(prev => {
+              if (userIsTyping && !prev.includes(typingUserId)) {
+                return [...prev, typingUserId];
+              } else if (!userIsTyping) {
+                return prev.filter(id => id !== typingUserId);
               }
-            } catch (error) {
-              console.error('Error parsing typing message:', error);
-            }
-          });
-        } catch (error) {
-          console.log('Separate typing endpoint not available, using main room channel');
-        }
+              return prev;
+            });
+          }
+        });
       },
       onDisconnect: () => {
         console.log('Admin disconnected from WebSocket');
-      },
-      onStompError: (frame) => {
-        console.error('STOMP error:', frame);
       }
     });
     
@@ -757,13 +673,12 @@ const AdminChatSupportDetails: React.FC<Props> = ({ roomId: propRoomId, sessionI
     stompClient.current = client;
     
     return () => {
-      console.log('Cleaning up WebSocket connection');
       client.deactivate();
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
     };
-  }, [sessionId, adminId]);
+  }, [roomId, adminId]);
 
   // Auto scroll effect
   useEffect(() => {
@@ -785,10 +700,7 @@ const AdminChatSupportDetails: React.FC<Props> = ({ roomId: propRoomId, sessionI
   }, [messages.length, shouldAutoScroll, isUserScrolling, scrollToBottom]);
 
   const handleSend = useCallback(async () => {
-    if (!input.trim() || !roomId || !sessionId) {
-      console.warn('Cannot send message - missing data:', { input: input.trim(), roomId, sessionId });
-      return;
-    }
+    if (!input.trim() || !sessionId || !roomId) return;
 
     const payload: ChatMessageRequest = {
       chatRoomId: roomId,
@@ -800,7 +712,6 @@ const AdminChatSupportDetails: React.FC<Props> = ({ roomId: propRoomId, sessionI
     };
 
     const fakeMessage: EnhancedChatMessage = {
-      userId: adminId,
       content: input,
       senderType: 'ADMIN',
       senderName: 'Admin',
@@ -812,7 +723,6 @@ const AdminChatSupportDetails: React.FC<Props> = ({ roomId: propRoomId, sessionI
       response: '',
     };
 
-    console.log('Sending message:', payload);
     setMessages(prev => [...prev, fakeMessage]);
     setInput('');
     setShouldAutoScroll(true);
@@ -825,7 +735,6 @@ const AdminChatSupportDetails: React.FC<Props> = ({ roomId: propRoomId, sessionI
     
     try {
       await adminChatApi.sendMessage(payload);
-      console.log('Message sent successfully');
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Không thể gửi tin nhắn');
@@ -901,8 +810,6 @@ const AdminChatSupportDetails: React.FC<Props> = ({ roomId: propRoomId, sessionI
 
   return (
     <div className="container-fluid">
-      {/* Debug info - remove in production */}
-
       {/* Header */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div className="d-flex align-items-center">
@@ -949,9 +856,6 @@ const AdminChatSupportDetails: React.FC<Props> = ({ roomId: propRoomId, sessionI
             <span className="badge bg-info">
               {messages.length} tin nhắn
             </span>
-            {stompClient.current?.connected && (
-              <span className="badge bg-success">Đã kết nối</span>
-            )}
           </div>
         </div>
 
@@ -968,7 +872,6 @@ const AdminChatSupportDetails: React.FC<Props> = ({ roomId: propRoomId, sessionI
                 <div className="text-center text-muted">
                   <i className="bi bi-chat-dots" style={{ fontSize: '48px' }}></i>
                   <p className="mt-3">Chưa có tin nhắn nào trong cuộc trò chuyện này</p>
-                  <small>Room ID: {roomId} | Session ID: {sessionId}</small>
                 </div>
               </div>
             ) : (
@@ -1071,7 +974,7 @@ const AdminChatSupportDetails: React.FC<Props> = ({ roomId: propRoomId, sessionI
             </div>
 
             {/* Input row */}
-            <div className="d-flex align-items-center gap-2" style={{ paddingBottom: '8px' }}>
+            <div className="d-flex align-items-center gap-2">
               <FileUpload 
                 onFileSelect={handleFileUpload} 
                 disabled={uploading || isResolved}
@@ -1139,7 +1042,7 @@ const AdminChatSupportDetails: React.FC<Props> = ({ roomId: propRoomId, sessionI
         </div>
       </div>
 
-      {/* Room Info Panel */}
+      {/* Room Info Panel (Optional) */}
       <div className="row mt-4">
         <div className="col-md-6">
           <div className="card">
@@ -1153,24 +1056,10 @@ const AdminChatSupportDetails: React.FC<Props> = ({ roomId: propRoomId, sessionI
                   <p className="text-muted">{roomId}</p>
                 </div>
                 <div className="col-6">
-                  <strong>Session ID:</strong>
-                  <p className="text-muted">{sessionId}</p>
-                </div>
-              </div>
-              <div className="row">
-                <div className="col-6">
                   <strong>Trạng thái:</strong>
                   <p>
                     <span className={`badge ${isResolved ? 'bg-success' : 'bg-warning text-dark'}`}>
                       {isResolved ? 'Đã xử lý' : 'Đang xử lý'}
-                    </span>
-                  </p>
-                </div>
-                <div className="col-6">
-                  <strong>WebSocket:</strong>
-                  <p>
-                    <span className={`badge ${stompClient.current?.connected ? 'bg-success' : 'bg-danger'}`}>
-                      {stompClient.current?.connected ? 'Đã kết nối' : 'Mất kết nối'}
                     </span>
                   </p>
                 </div>

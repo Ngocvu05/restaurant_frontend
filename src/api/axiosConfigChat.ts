@@ -1,4 +1,3 @@
-// src/api/axiosConfigChat.ts
 import axios from 'axios';
 
 const chatApiInstance = axios.create({
