@@ -30,7 +30,7 @@ const AdminDashboardPage: React.FC = () => {
 
   useEffect(() => {
     const fetchDashboardData = async () => {
-      const start = new Date('2025-06-26T00:00:00').toISOString().slice(0, 19); // "2025-06-26T00:00:00"
+      const start = new Date('2025-06-26T00:00:00').toISOString().slice(0, 19);
       const end = new Date('2025-07-02T23:59:59').toISOString().slice(0, 19);
 
       const [revenueRes, statsRes] = await Promise.all([
@@ -41,7 +41,6 @@ const AdminDashboardPage: React.FC = () => {
       setRevenueData(revenueRes.data);
       setBookingStats(statsRes.data);
 
-      // Tính tổng doanh thu
       const total = revenueRes.data.reduce((acc: number, item: any) => acc + Number(item.totalRevenue), 0);
 
       setTotalRevenue(total);

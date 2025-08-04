@@ -17,7 +17,9 @@ import AdminLayout from '../admin/components/AdminLayout';
 import AdminDashboardPage from '../admin/pages/AdminDashboardPage';
 import AdminDishPage from '../admin/pages/AdminDishPage';
 import AdminBookingPage from '../admin/pages/AdminBookingPage';
+import AdminBookingDetailsPage from '../admin/pages/AdminBookingDetails';
 import AdminUserPage from '../admin/pages/AdminUserPage';
+import AdminUserDetails from '../admin/pages/AdminUserDetails';
 import AdminDishFormPage from '../admin/pages/AdminDishFormPage';
 import AdminNotificationPage from '../admin/pages/AdminNotificationPage';
 import BookingDetailPage from '../pages/BookingDetailPage';
@@ -102,12 +104,14 @@ const AppRouter: React.FC = () => {
           <Route path="/admin/dishes/:id/edit" element={<AdminDishFormPage />} />
           <Route path="/admin/dishes/:id" element={<AdminDishFormPage />} />
           <Route path="bookings" element={<AdminBookingPage />} />
-          <Route path="/admin/bookings/:id" element={<AdminBookingPage />} />
+          <Route path='/admin/bookings/:id' element={<AdminBookingDetailsPage/>} />
+          <Route path="/admin/bookings/new" element={<AdminBookingDetailsPage />} />
           <Route path="users" element={<AdminUserPage />} />
+          <Route path='/admin/users/:id' element={<AdminUserDetails/>} />
+          <Route path="/admin/users/new" element={<AdminUserDetails />} />
           <Route path="/admin/notifications" element={<AdminNotificationPage />} />
           <Route path="/admin/chat-support" element={<AdminChatSupport />} />
           <Route path="/admin/chat-support/:roomId" element={<AdminChatSupportDetails />} />
-          {/* Add other admin pages here */}
         </Route>
       </Route>
     </Routes>

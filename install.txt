@@ -31,3 +31,6 @@ npm install react-icons
 
 npm install react-window
 npm i --save-dev @types/react-window
+
+npm install @react-oauth/google jwt-decode
+npm install --save-dev @types/jwt-decode

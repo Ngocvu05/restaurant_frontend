@@ -6,6 +6,8 @@ import * as yup from 'yup';
 import api from '../api/axiosConfigUser';
 import '../assets/css/templatemo-klassy-cafe.css';
 import { useLoading } from '../context/LoadingContext';
+import { GoogleOAuthProvider } from '@react-oauth/google';
+import OAuth2LoginButtons from '../components/OAuth2LoginButtons';
 
 const loginSchema = yup.object().shape({
   username: yup.string().required('Vui lòng nhập tên đăng nhập'),
@@ -60,55 +62,91 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  return (
-    <section className="reservation-form bg-light py-5">
-      <div className="container page-content">
-        <div className="row">
-          <div className="col-lg-6 offset-lg-3">
-            <div className="section-heading text-center">
-              <h2>Đăng nhập</h2>
-              <span>Chào mừng bạn quay trở lại!</span>
-            </div>
-            <form id="login" onSubmit={handleSubmit(onSubmit)}>
-              <div className="row">
-                <div className="col-lg-12">
-                  <fieldset>
-                    <input
-                      type="text"
-                      placeholder="Tên đăng nhập"
-                      className="form-control"
-                      {...register('username')}
-                    />
-                    {errors.username && <p className="text-danger small">{errors.username.message}</p>}
-                  </fieldset>
-                </div>
-                <div className="col-lg-12">
-                  <fieldset>
-                    <input
-                      type="password"
-                      placeholder="Mật khẩu"
-                      className="form-control"
-                      {...register('password')}
-                    />
-                    {errors.password && <p className="text-danger small">{errors.password.message}</p>}
-                  </fieldset>
-                </div>
-                <div className="col-lg-12">
-                  <fieldset>
-                    <button type="submit" className="main-button-icon">
-                      Đăng nhập
-                    </button>
-                  </fieldset>
-                </div>
-                <div className="col-lg-12 text-center mt-3">
-                  <span>Bạn chưa có tài khoản? <a href="/register">Đăng ký</a></span>
-                </div>
+  const handleOAuth2Success = (response: any) => {
+    const { token, username: name, role, avatarUrl, fullname, email, userId } = response;
+    console.log("OAuth2 Login Response data: ", response);
+    
+    sessionStorage.setItem('token', token);
+    sessionStorage.setItem('username', name);
+    sessionStorage.setItem('role', role);
+    sessionStorage.setItem('fullname', fullname);
+    sessionStorage.setItem('email', email);
+    sessionStorage.setItem('userId', userId);
+
+    if (avatarUrl) sessionStorage.setItem('avatar', avatarUrl);
+    
+    if (role === 'ADMIN') {
+      navigate('/admin/dashboard');
+    } else {
+      navigate('/');
+    }
+  };
+  
+  const handleOAuth2Error = (error: string) => {
+    setError('username', { message: error });
+    setError('password', { message: ' ' });
+  };
+
+   return (
+    <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID! || "YOUR_GOOGLE_CLIENT_ID"}>
+      <section className="reservation-form bg-light py-5">
+        <div className="container page-content">
+          <div className="row">
+            <div className="col-lg-6 offset-lg-3">
+              <div className="section-heading text-center">
+                <h2>Đăng nhập</h2>
+                <span>Chào mừng bạn quay trở lại!</span>
               </div>
-            </form>
+              
+              <form id="login" onSubmit={handleSubmit(onSubmit)}>
+                <div className="row">
+                  <div className="col-lg-12">
+                    <fieldset>
+                      <input
+                        type="text"
+                        placeholder="Tên đăng nhập"
+                        className="form-control"
+                        {...register('username')}
+                      />
+                      {errors.username && <p className="text-danger small">{errors.username.message}</p>}
+                    </fieldset>
+                  </div>
+                  <div className="col-lg-12">
+                    <fieldset>
+                      <input
+                        type="password"
+                        placeholder="Mật khẩu"
+                        className="form-control"
+                        {...register('password')}
+                      />
+                      {errors.password && <p className="text-danger small">{errors.password.message}</p>}
+                    </fieldset>
+                  </div>
+                  <div className="col-lg-12">
+                    <fieldset>
+                      <button type="submit" className="main-button-icon">
+                        Đăng nhập
+                      </button>
+                    </fieldset>
+                  </div>
+                </div>
+              </form>
+
+              {/* OAuth2 Login Buttons */}
+              <OAuth2LoginButtons 
+                onSuccess={handleOAuth2Success}
+                onError={handleOAuth2Error}
+                setLoading={setLoading}
+              />
+
+              <div className="col-lg-12 text-center mt-3">
+                <span>Bạn chưa có tài khoản? <a href="/register">Đăng ký</a></span>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </GoogleOAuthProvider>
   );
 };
 
