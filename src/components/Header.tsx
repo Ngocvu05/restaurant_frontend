@@ -1,30 +1,37 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import '../assets/css/bootstrap.min.css';
 import '../assets/css/font-awesome.css';
 import '../assets/css/templatemo-klassy-cafe.css';
 import '../assets/css/Header.css';
+import { useCart } from '../context/CartContext';
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
+  const { cart, loadCartFromApi, totalItems, clearCart } = useCart();
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const username = sessionStorage.getItem('username');
   const avatar = sessionStorage.getItem('avatar');
+  const userId = sessionStorage.getItem('userId');
 
-  const handleLogout = () => {
-    sessionStorage.removeItem('chatMessages');
+  useEffect(() => {
+    const parsedId = parseInt(userId || '');
+    if (!isNaN(parsedId)) {
+      // Only load cart once when userId changes
+      loadCartFromApi(parsedId);
+    }
+  }, [userId]); // Remove loadCartFromApi from dependencies
+
+  const handleLogout = async () => {
+    // Clear cart when logging out
+    await clearCart();
     sessionStorage.clear();
     navigate('/login');
   };
 
-  const toggleDropdown = () => {
-    setDropdownOpen(!dropdownOpen);
-  };
-
-  const closeDropdown = () => {
-    setDropdownOpen(false);
-  };
+  const toggleDropdown = () => setDropdownOpen(!dropdownOpen);
+  const closeDropdown = () => setDropdownOpen(false);
 
   return (
     <header className="header-area header-sticky">
@@ -48,6 +55,19 @@ const Header: React.FC = () => {
 
               {/* User section */}
               <div className="d-flex align-items-center gap-2 ms-auto position-relative">
+                {/* Cart Icon */}
+                <Link to="/cart" className="position-relative me-3 text-dark">
+                  <i className="fa fa-shopping-cart fs-4" />
+                  {totalItems > 0 && (
+                    <span 
+                      className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                      style={{ fontSize: '0.7rem' }}
+                    >
+                      {totalItems > 99 ? '99+' : totalItems}
+                    </span>
+                  )}
+                </Link>
+
                 {username ? (
                   <>
                     <div onClick={toggleDropdown} className="d-flex align-items-center gap-2 cursor-pointer">
@@ -78,22 +98,32 @@ const Header: React.FC = () => {
                       >
                         <li>
                           <Link to="/profile" className="dropdown-item" onClick={closeDropdown}>
+                            <i className="fa fa-user me-2"></i>
                             Hồ sơ cá nhân
                           </Link>
                         </li>
                         <li>
                           <Link to="/profile/edit" className="dropdown-item" onClick={closeDropdown}>
+                            <i className="fa fa-edit me-2"></i>
                             Cập nhật thông tin
                           </Link>
                         </li>
                         <li>
                           <Link to="/booking-history" className="dropdown-item" onClick={closeDropdown}>
+                            <i className="fa fa-history me-2"></i>
                             Lịch sử đặt bàn
+                          </Link>
+                        </li>
+                        <li>
+                          <Link to="/cart" className="dropdown-item" onClick={closeDropdown}>
+                            <i className="fa fa-shopping-cart me-2"></i>
+                            Giỏ hàng ({totalItems})
                           </Link>
                         </li>
                         <li><hr className="dropdown-divider" /></li>
                         <li>
                           <button className="dropdown-item text-danger" onClick={handleLogout}>
+                            <i className="fa fa-sign-out me-2"></i>
                             Đăng xuất
                           </button>
                         </li>
@@ -102,6 +132,7 @@ const Header: React.FC = () => {
                   </>
                 ) : (
                   <Link to="/login" className="main-button-icon px-3 py-1">
+                    <i className="fa fa-sign-in me-2"></i>
                     Đăng nhập
                   </Link>
                 )}

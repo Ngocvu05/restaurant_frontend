@@ -96,15 +96,17 @@ useEffect(() => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.1 }}
             >
-              <div className="card h-100">
-                <img src={dish.imageUrls[0]} alt={dish.name} className="card-img-top" />
-                <div className="card-body">
-                  <h5 className="card-title">{dish.name}</h5>
-                  <p className="card-text">{dish.description}</p>
-                  <p className="fw-bold">{dish.price.toLocaleString()}₫</p>
-                  <span className="badge bg-success">{dish.orderCount} lượt đặt</span>
+              <Link to={`/dishes/${dish.id}`} className="text-decoration-none text-dark">
+                <div className="card h-100">
+                  <img src={dish.imageUrls[0]} alt={dish.name} className="card-img-top" />
+                  <div className="card-body">
+                      <h5 className="card-title">{dish.name}</h5>
+                      <p className="card-text">{dish.description}</p>
+                      <p className="fw-bold">{dish.price.toLocaleString()}₫</p>
+                      <span className="badge bg-success">{dish.orderCount} lượt đặt</span>
+                  </div>
                 </div>
-              </div>
+              </Link>
             </motion.div>
           ))}
         </div>
@@ -122,14 +124,16 @@ useEffect(() => {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: idx * 0.1 }}
             >
-              <div className="card h-100">
-                <img src={dish.imageUrls[0]} alt={dish.name} className="card-img-top" />
-                <div className="card-body">
-                  <h5 className="card-title">{dish.name}</h5>
-                  <p className="card-text">{dish.description}</p>
-                  <span className="badge bg-warning text-dark">Món mới</span>
+              <Link to={`/dishes/${dish.id}`} className="text-decoration-none text-dark">
+                <div className="card h-100">
+                  <img src={dish.imageUrls[0]} alt={dish.name} className="card-img-top" />
+                  <div className="card-body">
+                    <h5 className="card-title">{dish.name}</h5>
+                    <p className="card-text">{dish.description}</p>
+                    <span className="badge bg-warning text-dark">Món mới</span>
+                  </div>
                 </div>
-              </div>
+              </Link>
             </motion.div>
           ))}
         </div>

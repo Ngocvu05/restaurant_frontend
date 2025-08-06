@@ -8,6 +8,7 @@ import '../assets/css/templatemo-klassy-cafe.css';
 import { useLoading } from '../context/LoadingContext';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import OAuth2LoginButtons from '../components/OAuth2LoginButtons';
+import FacebookErrorBoundary from '../components/FacebookErrorBoundary';
 
 const loginSchema = yup.object().shape({
   username: yup.string().required('Vui lòng nhập tên đăng nhập'),
@@ -33,13 +34,14 @@ const LoginPage: React.FC = () => {
   });
 
   const onSubmit = async (data: any) => {
-      data.sessionId = sessionStorage.getItem('chat-session-id') || '';
-      setLoading(true);
+    data.sessionId = sessionStorage.getItem('chat-session-id') || '';
+    setLoading(true);
     try {
-      console.log("Data submit form login",data)
+      console.log("Data submit form login", data);
       const response = await api.post('/auth/login', data);      
       const { token, username: name, role, avatarUrl, fullname } = response.data;
-      console.log("Login Respone data: ",response.data);
+      console.log("Login Response data: ", response.data);
+      
       sessionStorage.setItem('token', token);
       sessionStorage.setItem('username', name);
       sessionStorage.setItem('role', role);
@@ -57,7 +59,7 @@ const LoginPage: React.FC = () => {
     } catch (error: any) {
       setError('username', { message: 'Tài khoản hoặc mật khẩu không đúng' });
       setError('password', { message: ' ' });
-    }finally {
+    } finally {
       setLoading(false);
     }
   };
@@ -87,8 +89,15 @@ const LoginPage: React.FC = () => {
     setError('password', { message: ' ' });
   };
 
-   return (
-    <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID! || "YOUR_GOOGLE_CLIENT_ID"}>
+  // Check if Google Client ID is available
+  const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+  
+  if (!googleClientId) {
+    console.warn('Google Client ID not configured');
+  }
+
+  return (
+    <GoogleOAuthProvider clientId={googleClientId || "YOUR_GOOGLE_CLIENT_ID"}>
       <section className="reservation-form bg-light py-5">
         <div className="container page-content">
           <div className="row">
@@ -132,12 +141,14 @@ const LoginPage: React.FC = () => {
                 </div>
               </form>
 
-              {/* OAuth2 Login Buttons */}
-              <OAuth2LoginButtons 
-                onSuccess={handleOAuth2Success}
-                onError={handleOAuth2Error}
-                setLoading={setLoading}
-              />
+              {/* OAuth2 Login Buttons with Error Boundary */}
+              <FacebookErrorBoundary>
+                <OAuth2LoginButtons 
+                  onSuccess={handleOAuth2Success}
+                  onError={handleOAuth2Error}
+                  setLoading={setLoading}
+                />
+              </FacebookErrorBoundary>
 
               <div className="col-lg-12 text-center mt-3">
                 <span>Bạn chưa có tài khoản? <a href="/register">Đăng ký</a></span>

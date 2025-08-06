@@ -137,8 +137,8 @@ const AdminUserDetails: React.FC = () => {
                 onChange={e => handleChange('roleType', e.target.value as RoleName)}
               >
                 <option value="ADMIN">ADMIN</option>
-                <option value="USER">USER</option>
-                <option value="MANAGER">MANAGER</option>
+                <option value="CUSTOMER">CUSTOMER</option>
+                <option value="STAFF">STAFF</option>
               </Form.Select>
             </Form.Group>
 

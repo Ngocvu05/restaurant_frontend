@@ -21,3 +21,40 @@
     flex-direction: column;
   }
 }
+
+/* Sticky Footer CSS - Thêm vào file CSS chính */
+
+/* Đảm bảo html và body có chiều cao 100% */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Container chính của app */
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Main content area sẽ chiếm hết không gian còn lại */
+.main-content {
+  flex: 1;
+}
+
+/* Footer luôn nằm ở cuối */
+footer {
+  margin-top: auto;
+  background-color: #f8f9fa; /* Hoặc màu bạn muốn */
+  padding: 20px 0;
+}
+
+/* Alternative: Nếu sử dụng Bootstrap classes */
+.min-vh-100 {
+  min-height: 100vh;
+}
+
+.flex-grow-1 {
+  flex: 1 1 auto;
+}

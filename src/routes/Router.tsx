@@ -11,6 +11,9 @@ import ProfilePage from '../pages/ProfilePage';
 import EditProfilePage from '../pages/EditProfilePage';
 import BookingHistoryPage from '../pages/BookingHistoryPage';
 import ChatPage from '../pages/ChatPage';
+import DishDetails from '../pages/DishDetails';
+import CartPage from '../components/CartPage';
+import MenuPage from '../pages/MenuPage';
 
 // Admin
 import AdminLayout from '../admin/components/AdminLayout';
@@ -48,10 +51,6 @@ const AppRouter: React.FC = () => {
       />
       
       <Route
-        path="/menu"
-        element={<Layout><div>Menu Page</div></Layout>}
-      />
-      <Route
         path="/about"
         element={<Layout><div>About Page</div></Layout>}
       />
@@ -62,6 +61,10 @@ const AppRouter: React.FC = () => {
         <Route
           path="/booking"
           element={<Layout><BookingPage /></Layout>}
+        />
+        <Route
+          path="/menu"
+          element={<Layout><MenuPage /></Layout>}
         />
         <Route
           path="/booking-success"
@@ -84,8 +87,16 @@ const AppRouter: React.FC = () => {
           element={<Layout><BookingDetailPage /></Layout>}
         />
         <Route
+          path="/dishes/:id"
+          element={<Layout><DishDetails /></Layout>}
+        />
+        <Route
           path="/chat"
           element={<Layout><ChatPage /></Layout>}
+        />
+        <Route
+          path="/cart"
+          element={<Layout><CartPage /></Layout>}
         />
         <Route
           path="/contact"

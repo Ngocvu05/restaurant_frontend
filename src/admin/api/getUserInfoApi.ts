@@ -9,20 +9,19 @@ const api = axiosConfig.create({
   },
 });
 
-const userApi = {
-  // ✅ Lấy tất cả user
+const userApi = {  
   getAll: () => api.get<UserDTO[]>('/'),
 
-  // ✅ Lấy user theo id
+ 
   getById: (id: number) => api.get<UserDTO>(`/${id}`),
 
-  // ✅ Tạo user mới
+  
   create: (data: UserDTO) => api.post<UserDTO>('/', data),
 
-  // ✅ Cập nhật user theo id
+  
   update: (id: number, data: UserDTO) => api.put<UserDTO>(`/${id}`, data),
 
-  // ✅ Xoá user theo id
+  
   delete: (id: number) => api.delete<string>(`/${id}`),
 };
 

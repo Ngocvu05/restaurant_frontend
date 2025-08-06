@@ -34,3 +34,6 @@ npm i --save-dev @types/react-window
 
 npm install @react-oauth/google jwt-decode
 npm install --save-dev @types/jwt-decode
+
+npm install -g ngrok
+npm install @react-oauth/google jwt-decode @types/facebook-js-sdk

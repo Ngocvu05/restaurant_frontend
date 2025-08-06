@@ -35,6 +35,10 @@ export const UserApi = {
   updateProfile: (data: UpdateUserProfileRequest) => {
     return axiosConfig.put('/users/update', data);
   },
+  
+  changePassword: (data: { currentPassword: string; newPassword: string }) => {
+    return axiosConfig.put('/user/change-password', data);
+  },
 
   setAvatar: (imageId: number) => {
     return axiosConfig.put(`/users/avatar/${imageId}`);
