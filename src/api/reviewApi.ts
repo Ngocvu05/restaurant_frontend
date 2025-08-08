@@ -3,6 +3,7 @@ import api from './axiosConfigUser';
 export interface ReviewDTO {
   id?: number;
   dishId: number;
+  customerId?: number;
   customerName: string;
   customerEmail?: string;
   customerAvatar?: string;

@@ -28,6 +28,8 @@ import AdminNotificationPage from '../admin/pages/AdminNotificationPage';
 import BookingDetailPage from '../pages/BookingDetailPage';
 import AdminChatSupport from '../admin/pages/AdminChatSupport';
 import AdminChatSupportDetails from '../admin/pages/AdminChatSupportDetails';
+import AdminReviewsPage from '../admin/pages/AdminReviewsPage';
+import AdminReviewDetailsPage from '../admin/pages/AdminReviewDetailsPage';
 
 const AppRouter: React.FC = () => {
   return (
@@ -123,6 +125,8 @@ const AppRouter: React.FC = () => {
           <Route path="/admin/notifications" element={<AdminNotificationPage />} />
           <Route path="/admin/chat-support" element={<AdminChatSupport />} />
           <Route path="/admin/chat-support/:roomId" element={<AdminChatSupportDetails />} />
+          <Route path="/admin/reviews" element={<AdminReviewsPage />} />
+          <Route path='/admin/reviews/:id' element={<AdminReviewDetailsPage/>} />
         </Route>
       </Route>
     </Routes>

@@ -38,6 +38,7 @@ interface ReviewForm {
   comment: string;
   customerName: string;
   customerEmail?: string;
+  customerAvatar?: string;
 }
 
 const DishDetails: React.FC = () => {
@@ -52,7 +53,7 @@ const DishDetails: React.FC = () => {
     rating: 5,
     comment: '',
     customerName: '',
-    customerEmail: ''
+    customerEmail: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reviewsLoading, setReviewsLoading] = useState(false);
@@ -146,7 +147,8 @@ const DishDetails: React.FC = () => {
         customerName: reviewForm.customerName,
         customerEmail: reviewForm.customerEmail || undefined,
         rating: reviewForm.rating,
-        comment: reviewForm.comment
+        comment: reviewForm.comment,
+        customerAvatar: sessionStorage.getItem('avatar') || undefined
       });
       
       // Reset form và ẩn form
@@ -183,7 +185,7 @@ const DishDetails: React.FC = () => {
       ...prev,
       [filterType]: value
     }));
-    setCurrentReviewPage(0); // Reset to first page when filtering
+    setCurrentReviewPage(0);
   };
 
   const renderStars = (rating: number, interactive: boolean = false, onStarClick?: (rating: number) => void) => {

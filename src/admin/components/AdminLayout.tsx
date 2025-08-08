@@ -9,8 +9,14 @@ import Modal from 'react-bootstrap/Modal';
 import Button from 'react-bootstrap/Button';
 
 import { connectAllWebSockets, disconnectAllWebSockets } from '../../admin/api/WebSocket';
-import { searchApi } from '../../admin/api/searchApi';
+import searchApi from '../../admin/api/searchApi';
 import { getNotificationApi } from '../../admin/api/getNotificationApi';
+import { 
+  DishSearchResult,
+  UserSearchResult,
+  ReviewSearchResult,
+  SearchResult 
+} from '../types/search.types';
 
 interface Notification {
   id: number;
@@ -18,16 +24,6 @@ interface Notification {
   content: string;
   isRead: boolean;
   createdAt: string;
-}
-
-interface Dish {
-  id: number;
-  name: string;
-  description: string;
-  price: number;
-  category: string;
-  imageUrl?: string;
-  available: boolean;
 }
 
 const AdminLayout: React.FC = () => {
@@ -42,12 +38,14 @@ const AdminLayout: React.FC = () => {
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
   const [showModal, setShowModal] = useState(false);
 
-  // Search states
+  // Enhanced search states
   const [searchKeyword, setSearchKeyword] = useState('');
-  const [searchResults, setSearchResults] = useState<Dish[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
-  const [searchSuggestions, setSearchSuggestions] = useState<Dish[]>([]);
+  const [searchSuggestions, setSearchSuggestions] = useState<SearchResult[]>([]);
+  const [searchType, setSearchType] = useState<'dishes' | 'users' | 'reviews'>('dishes');
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const username = sessionStorage.getItem('username');
@@ -62,11 +60,7 @@ const AdminLayout: React.FC = () => {
       return;
     }
 
-    // Lưu adminId nếu chưa có (có thể extract từ token hoặc API)
     if (!adminId) {
-      // TODO: Lấy adminId từ API hoặc decode từ JWT token
-      // const extractedAdminId = extractAdminIdFromToken(token);
-      // sessionStorage.setItem('adminId', extractedAdminId);
       console.warn('⚠️ AdminId not found in sessionStorage');
     }
 
@@ -75,7 +69,7 @@ const AdminLayout: React.FC = () => {
       avatarUrl: avatar ? avatar : '/assets/images/avatar.png',
     });
 
-    // Lấy thông báo cũ từ API
+    // Load notifications
     getNotificationApi.getLimited(5)
       .then((res) => {
         const data = res.data;
@@ -92,9 +86,8 @@ const AdminLayout: React.FC = () => {
         console.error('❌ Error fetching notifications:', error.message);
       });
 
-    // Kết nối tất cả WebSocket services
+    // Connect WebSocket services
     connectAllWebSockets(username, {
-      // Callback cho thông báo từ User Service (port 8081)
       onUserNotificationReceived: (notification) => {
         setNotifications((prev) => [notification, ...prev]);
         toast.info(`🔔 ${notification.title}`, {
@@ -106,7 +99,6 @@ const AdminLayout: React.FC = () => {
         });
       },
       
-      // Callback cho thông báo từ Chat Service (port 8083)
       onChatNotificationReceived: (notification) => {
         setNotifications((prev) => [notification, ...prev]);
         toast.info(`💬 ${notification.title}`, {
@@ -118,7 +110,6 @@ const AdminLayout: React.FC = () => {
         });
       },
       
-      // Callback cho thông báo riêng tư của admin (alerts)
       onAdminAlertReceived: (alertMessage) => {
         const alertNotification = {
           id: Date.now(),
@@ -138,10 +129,9 @@ const AdminLayout: React.FC = () => {
         });
       },
       
-      // Callback cho thông báo broadcast cho tất cả admin
       onAdminBroadcastReceived: (broadcastMessage) => {
         const broadcastNotification = {
-          id: Date.now() + Math.random(), // Tránh trùng ID
+          id: Date.now() + Math.random(),
           title: 'Thông báo Admin',
           content: broadcastMessage,
           isRead: false,
@@ -159,55 +149,122 @@ const AdminLayout: React.FC = () => {
       }
     });
 
-    // Cleanup khi component unmount
     return () => {
       disconnectAllWebSockets();
     };
   }, [navigate]);
 
-  // Search functionality
+  // Enhanced search with debouncing
+  const handleSearchInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchKeyword(value);
+
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+
+    if (value.length > 1) {
+      const timeout = setTimeout(async () => {
+        try {
+          let response;
+          switch (searchType) {
+            case 'dishes':
+              response = await searchApi.searchSuggestions(value);
+              setSearchSuggestions(response.data.slice(0, 5));
+              break;
+            case 'users':
+              response = await searchApi.searchUsers({ query: value, size: 5 });
+              setSearchSuggestions(response.data.content?.slice(0, 5) || []);
+              break;
+            case 'reviews':
+              response = await searchApi.searchReviews({ query: value, size: 5 });
+              setSearchSuggestions(response.data.content?.slice(0, 5) || []);
+              break;
+          }
+        } catch (error) {
+          console.error('❌ Error fetching suggestions:', error);
+          setSearchSuggestions([]);
+        }
+      }, 300);
+      
+      setSearchTimeout(timeout);
+    } else {
+      setSearchSuggestions([]);
+    }
+  };
+
+  // Enhanced search functionality
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchKeyword.trim()) return;
 
     setIsSearching(true);
     try {
-      const res = await searchApi.search(searchKeyword);
-      setSearchResults(res.data);
+      let response;
+      switch (searchType) {
+        case 'dishes':
+          response = await searchApi.searchDishesAdvanced(searchKeyword);
+          setSearchResults(response.data);
+          break;
+        case 'users':
+          response = await searchApi.searchUsers({ query: searchKeyword, size: 20 });
+          setSearchResults(response.data.content || []);
+          break;
+        case 'reviews':
+          response = await searchApi.searchReviews({ query: searchKeyword, size: 20 });
+          setSearchResults(response.data.content || []);
+          break;
+      }
+      
       setShowSearchResults(true);
+      setSearchSuggestions([]);
     } catch (error) {
-      console.error('❌ Error searching dishes:', error);
-      toast.error('Lỗi khi tìm kiếm món ăn');
+      console.error('❌ Error searching:', error);
+      toast.error('Lỗi khi tìm kiếm');
     } finally {
       setIsSearching(false);
     }
   };
 
-  // Get search suggestions as user types
-  const handleSearchInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchKeyword(value);
-
-    if (value.length > 1) {
-      try {
-        const res = await searchApi.searchSuggestions(value);
-        setSearchSuggestions(res.data.slice(0, 5));
-      } catch (error) {
-        console.error('❌ Error fetching suggestions:', error);
-      }
-    } else {
-      setSearchSuggestions([]);
+  const handleSuggestionClick = (suggestion: SearchResult) => {
+    const name = searchType === 'dishes' ? (suggestion as DishSearchResult).name : 
+                 searchType === 'users' ? (suggestion as UserSearchResult).username : 
+                 `Review by ${(suggestion as ReviewSearchResult).customerName}`;
+    setSearchKeyword(name);
+    setSearchSuggestions([]);
+    
+    // Navigate to detail page
+    switch (searchType) {
+      case 'dishes':
+        navigate(`/admin/dishes/${(suggestion as DishSearchResult).id}`);
+        break;
+      case 'users':
+        navigate(`/admin/users/${(suggestion as UserSearchResult).id}`);
+        break;
+      case 'reviews':
+        navigate(`/admin/reviews/${(suggestion as ReviewSearchResult).id}`);
+        break;
     }
   };
 
-  const handleSuggestionClick = (suggestion: Dish) => {
-    setSearchKeyword(suggestion.name);
-    setSearchSuggestions([]);
-    navigate(`/admin/dishes/${suggestion.id}`);
+  const handleResultClick = (result: SearchResult) => {
+    closeSearchResults();
+    
+    switch (searchType) {
+      case 'dishes':
+        navigate(`/admin/dishes/${(result as DishSearchResult).id}`);
+        break;
+      case 'users':
+        navigate(`/admin/users/${(result as UserSearchResult).id}`);
+        break;
+      case 'reviews':
+        navigate(`/admin/reviews/${(result as ReviewSearchResult).id}`);
+        break;
+    }
   };
 
   const handleLogout = () => {
-    disconnectAllWebSockets(); // Disconnect all WebSocket connections
+    disconnectAllWebSockets();
     sessionStorage.clear();
     navigate('/');
   };
@@ -237,6 +294,32 @@ const AdminLayout: React.FC = () => {
     setSearchResults([]);
   };
 
+  const getDisplayName = (item: any) => {
+    switch (searchType) {
+      case 'dishes':
+        return item.name;
+      case 'users':
+        return item.username || item.fullName;
+      case 'reviews':
+        return `Review by ${item.customerName}`;
+      default:
+        return item.name || item.title;
+    }
+  };
+
+  const getDisplayInfo = (item: any) => {
+    switch (searchType) {
+      case 'dishes':
+        return `${item.category} - ${item.price?.toLocaleString()}₫`;
+      case 'users':
+        return `${item.email} - ${item.roleName}`;
+      case 'reviews':
+        return `Rating: ${item.rating}/5 - Dish ID: ${item.dishId}`;
+      default:
+        return '';
+    }
+  };
+
   return (
     <div className="d-flex" style={{ minHeight: '100vh' }}>
       {/* Sidebar */}
@@ -247,20 +330,33 @@ const AdminLayout: React.FC = () => {
           <li className="nav-item"><Link to="/admin/dishes" className="nav-link text-white">Món ăn</Link></li>
           <li className="nav-item"><Link to="/admin/bookings" className="nav-link text-white">Đặt bàn</Link></li>
           <li className="nav-item"><Link to="/admin/users" className="nav-link text-white">Người dùng</Link></li>
+          <li className="nav-item"><Link to="/admin/reviews" className="nav-link text-white">Đánh giá</Link></li>
           <li className="nav-item"><Link to="/admin/chat-support" className="nav-link text-white">Phản hồi chat</Link></li>
         </ul>
       </nav>
 
       {/* Main content */}
       <div className="flex-grow-1" style={{ marginLeft: '220px' }}>
-        {/* Topbar */}
+        {/* Enhanced Topbar */}
         <nav className="navbar navbar-expand navbar-light bg-light shadow-sm px-3" style={{ height: '60px' }}>
           <form className="d-none d-sm-inline-block form-inline me-auto ms-md-3 my-2 my-md-0 w-50 position-relative" onSubmit={handleSearch}>
             <div className="input-group">
+              {/* Search type selector */}
+              <select 
+                className="form-select" 
+                style={{ maxWidth: '120px' }}
+                value={searchType}
+                onChange={(e) => setSearchType(e.target.value as 'dishes' | 'users' | 'reviews')}
+              >
+                <option value="dishes">Món ăn</option>
+                <option value="users">Người dùng</option>
+                <option value="reviews">Đánh giá</option>
+              </select>
+              
               <input 
                 type="text" 
                 className="form-control bg-light border-0 small" 
-                placeholder="Tìm kiếm món ăn..." 
+                placeholder={`Tìm kiếm ${searchType === 'dishes' ? 'món ăn' : searchType === 'users' ? 'người dùng' : 'đánh giá'}...`}
                 value={searchKeyword}
                 onChange={handleSearchInputChange}
                 disabled={isSearching}
@@ -274,12 +370,17 @@ const AdminLayout: React.FC = () => {
               </button>
             </div>
             
-            {/* Search suggestions dropdown */}
+            {/* Enhanced suggestions dropdown */}
             {searchSuggestions.length > 0 && (
               <div className="position-absolute top-100 start-0 w-100 bg-white border rounded shadow-lg" style={{ zIndex: 1000 }}>
-                {searchSuggestions.map((suggestion) => (
+                <div className="p-2">
+                  <small className="text-muted fw-medium">
+                    Gợi ý tìm kiếm {searchType === 'dishes' ? 'món ăn' : searchType === 'users' ? 'người dùng' : 'đánh giá'}:
+                  </small>
+                </div>
+                {searchSuggestions.map((suggestion, index) => (
                   <div
-                    key={suggestion.id}
+                    key={index}
                     className="p-2 border-bottom cursor-pointer hover-bg-light"
                     onClick={() => handleSuggestionClick(suggestion)}
                     style={{ cursor: 'pointer' }}
@@ -287,10 +388,10 @@ const AdminLayout: React.FC = () => {
                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
                   >
                     <div className="d-flex align-items-center">
-                      <i className="bi bi-search me-2 text-muted"></i>
-                      <div>
-                        <div className="fw-medium">{suggestion.name}</div>
-                        <small className="text-muted">{suggestion.category} - {suggestion.price.toLocaleString()}đ</small>
+                      <i className={`bi ${searchType === 'dishes' ? 'bi-cup-straw' : searchType === 'users' ? 'bi-person' : 'bi-star'} me-2 text-muted`}></i>
+                      <div className="flex-grow-1 admin-search-suggest-content">
+                        <div className="fw-medium admin-search-suggest-name">{getDisplayName(suggestion)}</div>
+                        <small className="text-muted admin-search-suggest-info">{getDisplayInfo(suggestion)}</small>
                       </div>
                     </div>
                   </div>
@@ -348,55 +449,158 @@ const AdminLayout: React.FC = () => {
           </ul>
         </nav>
 
-        {/* Search Results Modal */}
+        {/* Enhanced Search Results Modal */}
         {showSearchResults && (
           <div className="position-fixed top-0 start-0 w-100 h-100 bg-black bg-opacity-50 d-flex justify-content-center align-items-center" style={{ zIndex: 1050 }}>
-            <div className="bg-white rounded p-4 shadow-lg" style={{ maxWidth: '800px', width: '90%', maxHeight: '80vh', overflow: 'auto' }}>
+            <div className="bg-white rounded p-4 shadow-lg" style={{ maxWidth: '900px', width: '90%', maxHeight: '80vh', overflow: 'auto' }}>
               <div className="d-flex justify-content-between align-items-center mb-3">
-                <h5 className="mb-0">Kết quả tìm kiếm cho "{searchKeyword}"</h5>
+                <h5 className="mb-0">
+                  Kết quả tìm kiếm {searchType === 'dishes' ? 'món ăn' : searchType === 'users' ? 'người dùng' : 'đánh giá'} cho "{searchKeyword}"
+                  <span className="badge bg-secondary ms-2">{searchResults.length} kết quả</span>
+                </h5>
                 <button className="btn btn-close" onClick={closeSearchResults}></button>
               </div>
               
               {searchResults.length === 0 ? (
                 <div className="text-center py-4">
                   <i className="bi bi-search display-1 text-muted"></i>
-                  <p className="text-muted mt-2">Không tìm thấy món ăn nào phù hợp</p>
+                  <p className="text-muted mt-2">Không tìm thấy kết quả nào phù hợp</p>
                 </div>
               ) : (
-                <div className="row">
-                  {searchResults.map((dish) => (
-                    <div key={dish.id} className="col-md-6 col-lg-4 mb-3">
-                      <div className="card h-100">
-                        {dish.imageUrl && (
-                          <img src={dish.imageUrl} className="card-img-top" alt={dish.name} style={{ height: '150px', objectFit: 'cover' }} />
-                        )}
-                        <div className="card-body">
-                          <h6 className="card-title">{dish.name}</h6>
-                          <p className="card-text text-muted small">{dish.description}</p>
-                          <div className="d-flex justify-content-between align-items-center">
-                            <span className="badge bg-secondary">{dish.category}</span>
-                            <span className="fw-bold text-primary">{dish.price.toLocaleString()}đ</span>
-                          </div>
-                          <div className="mt-2">
-                            <span className={`badge ${dish.available ? 'bg-success' : 'bg-danger'}`}>
-                              {dish.available ? 'Có sẵn' : 'Hết hàng'}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="card-footer">
-                          <button 
-                            className="btn btn-primary btn-sm w-100"
-                            onClick={() => {
-                              navigate(`/admin/dishes/${dish.id}`);
-                              closeSearchResults();
-                            }}
+                <div className="search-results">
+                  {searchType === 'dishes' && (
+                    <div className="row">
+                      {searchResults.map((dish: any) => (
+                        <div key={dish.id} className="col-md-6 col-lg-4 mb-3">
+                          <div 
+                            className="card h-100 cursor-pointer" 
+                            onClick={() => handleResultClick(dish)}
+                            style={{ cursor: 'pointer' }}
                           >
-                            Xem chi tiết
-                          </button>
+                            {dish.imageUrls?.[0] && (
+                              <img src={dish.imageUrls[0]} className="card-img-top" alt={dish.name} style={{ height: '150px', objectFit: 'cover' }} />
+                            )}
+                            <div className="card-body">
+                              <h6 className="card-title">{dish.name}</h6>
+                              <p className="card-text text-muted small">{dish.description}</p>
+                              <div className="d-flex justify-content-between align-items-center">
+                                <span className="badge bg-secondary">{dish.category}</span>
+                                <span className="fw-bold text-primary">{dish.price?.toLocaleString()}₫</span>
+                              </div>
+                              <div className="mt-2">
+                                <span className={`badge ${dish.isAvailable ? 'bg-success' : 'bg-danger'}`}>
+                                  {dish.isAvailable ? 'Có sẵn' : 'Hết hàng'}
+                                </span>
+                                {dish.averageRating > 0 && (
+                                  <span className="badge bg-warning ms-1">
+                                    <i className="bi bi-star-fill me-1"></i>
+                                    {dish.averageRating.toFixed(1)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
+                  
+                  {searchType === 'users' && (
+                    <div className="table-responsive">
+                      <table className="table table-hover">
+                        <thead>
+                          <tr>
+                            <th>Avatar</th>
+                            <th>Username</th>
+                            <th>Họ tên</th>
+                            <th>Email</th>
+                            <th>Vai trò</th>
+                            <th>Trạng thái</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {searchResults.map((user: any) => (
+                            <tr 
+                              key={user.id} 
+                              style={{ cursor: 'pointer' }} 
+                              onClick={() => handleResultClick(user)}
+                            >
+                              <td>
+                                <img src={user.avatarUrl || '/default-avatar.png'} alt={user.username} className="rounded-circle" width="32" height="32" />
+                              </td>
+                              <td className="fw-medium">{user.username}</td>
+                              <td>{user.fullName}</td>
+                              <td>{user.email}</td>
+                              <td>
+                                <span className={`badge ${user.roleName === 'ADMIN' ? 'bg-danger' : 'bg-primary'}`}>
+                                  {user.roleName}
+                                </span>
+                              </td>
+                              <td>
+                                <span className={`badge ${user.status === 'ACTIVE' ? 'bg-success' : 'bg-secondary'}`}>
+                                  {user.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                  
+                  {searchType === 'reviews' && (
+                    <div className="reviews-list">
+                      {searchResults.map((review: any) => (
+                        <div 
+                          key={review.id} 
+                          className="card mb-3 cursor-pointer" 
+                          onClick={() => handleResultClick(review)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <div className="card-body">
+                            <div className="d-flex justify-content-between align-items-start mb-2">
+                              <div className="d-flex align-items-center">
+                                <img 
+                                  src={review.customerAvatar || '/default-avatar.png'} 
+                                  alt={review.customerName}
+                                  className="rounded-circle me-2"
+                                  width="32"
+                                  height="32"
+                                />
+                                <div>
+                                  <h6 className="mb-0">{review.customerName}</h6>
+                                  <small className="text-muted">{review.customerEmail}</small>
+                                </div>
+                              </div>
+                              <div className="text-end">
+                                <div className="text-warning mb-1">
+                                  {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
+                                </div>
+                                <small className="text-muted">
+                                  {new Date(review.createdAt).toLocaleDateString('vi-VN')}
+                                </small>
+                              </div>
+                            </div>
+                            <p className="mb-2">{review.comment}</p>
+                            <div className="d-flex justify-content-between align-items-center">
+                              <span className="badge bg-info">Dish ID: {review.dishId}</span>
+                              <div>
+                                <span className={`badge ${review.isActive ? 'bg-success' : 'bg-secondary'} me-1`}>
+                                  {review.isActive ? 'Hoạt động' : 'Không hoạt động'}
+                                </span>
+                                {review.isVerified && (
+                                  <span className="badge bg-primary">
+                                    <i className="bi bi-check-circle me-1"></i>
+                                    Đã xác minh
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

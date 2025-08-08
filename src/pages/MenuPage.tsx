@@ -425,7 +425,7 @@ const MenuPage: React.FC = () => {
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
-  const { setLoading: setGlobalLoading } = useLoading(); // Rename để tránh conflict
+  const { setLoading: setGlobalLoading } = useLoading();
 
   // Load dishes on component mount
   useEffect(() => {
