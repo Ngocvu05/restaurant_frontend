@@ -149,35 +149,59 @@ const PaymentComponent: React.FC<PaymentComponentProps> = ({
   };
 
   // Handle manual transfer confirmation
-  const handleTransferConfirmation = () => {
+  const handleTransferConfirmation = async () => {
     const { addInfo } = getTransferInfo();
     
     const confirmMessage = `
-Xác nhận bạn đã chuyển khoản với thông tin:
-- Số tiền: ${amount.toLocaleString()}₫
-- Nội dung: ${addInfo}
-- Số tài khoản: ${VIETQR_CONFIG.accountNo}
-- Ngân hàng: Shinhan Bank
+      Xác nhận bạn đã chuyển khoản với thông tin:
+      - Số tiền: ${amount.toLocaleString()}₫
+      - Nội dung: ${addInfo}
+      - Số tài khoản: ${VIETQR_CONFIG.accountNo}
+      - Ngân hàng: Shinhan Bank
 
-Vui lòng đợi xác nhận từ nhà hàng.
+      Vui lòng đợi xác nhận từ nhà hàng.
     `;
     
     if (window.confirm(confirmMessage.trim())) {
-      const transferPayment: PaymentStatus = {
-        id: Date.now(),
-        bookingId: bookingId,
-        amount: amount,
-        paymentMethod: 'BANK_TRANSFER',
-        status: 'PENDING',
-        paymentTime: new Date().toISOString(),
-        transactionId: `TRANSFER_${bookingId}_${Date.now()}`
-      };
-      
-      setCurrentPayment(transferPayment);
-      setSuccess('Cảm ơn bạn! Chúng tôi sẽ xác nhận thanh toán trong thời gian sớm nhất.');
-      
-      if (onPaymentSuccess) {
-        onPaymentSuccess(transferPayment);
+      try {
+        setLoading(true);
+        setError('');
+
+        // Import payment confirmation API
+        const { paymentConfirmationApi } = await import('../admin/api/paymentConfirmationApi');
+        
+        // Tạo yêu cầu xác nhận thanh toán
+        const confirmationRequest = {
+          bookingId: bookingId,
+          amount: amount,
+          paymentMethod: 'BANK_TRANSFER',
+          transactionReference: addInfo,
+          customerNote: `Đã chuyển khoản ${amount.toLocaleString()}₫ cho đặt bàn #${bookingId}`
+        };
+
+        const confirmationResult = await paymentConfirmationApi.requestPaymentConfirmation(confirmationRequest);
+
+        const transferPayment: PaymentStatus = {
+          id: confirmationResult.id,
+          bookingId: bookingId,
+          amount: amount,
+          paymentMethod: 'BANK_TRANSFER',
+          status: 'PENDING',
+          paymentTime: new Date().toISOString(),
+          transactionId: confirmationResult.transactionReference || `TRANSFER_${bookingId}_${Date.now()}`
+        };
+        
+        setCurrentPayment(transferPayment);
+        setSuccess('Yêu cầu xác nhận đã được gửi! Chúng tôi sẽ xác nhận thanh toán trong thời gian sớm nhất.');
+        
+        if (onPaymentSuccess) {
+          onPaymentSuccess(transferPayment);
+        }
+      } catch (error: any) {
+        console.error('Error creating payment confirmation:', error);
+        setError(error.message || 'Không thể gửi yêu cầu xác nhận thanh toán');
+      } finally {
+        setLoading(false);
       }
     }
   };

@@ -1,43 +1,14 @@
 // src/admin/pages/AdminBookingDetailsPage.tsx
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Container, Row, Col, Card, Form, Button, Alert, Spinner, Badge, Modal, Table, InputGroup } from 'react-bootstrap';
 import { 
-  Container, 
-  Row, 
-  Col, 
-  Card, 
-  Form, 
-  Button, 
-  Alert,
-  Spinner,
-  Badge,
-  ButtonGroup,
-  Modal
-} from 'react-bootstrap';
-import { 
-  ArrowLeft, 
-  Save, 
-  Calendar, 
-  Users, 
-  Clock,
-  User,
-  MapPin,
-  Edit3,
-  Plus,
-  Trash2,
-  Check,
-  X
+  ArrowLeft, Save, Calendar, Users, Clock, User, MapPin, Edit3, Plus, Trash2, X, 
+  CreditCard, CheckCircle, XCircle, AlertCircle, FileText, DollarSign 
 } from 'lucide-react';
-import { 
-  getAllBookings, 
-  getBookingById,
-  createBooking,
-  updateBooking,
-  cancelBooking, 
-  BookingDTO 
-} from '../api/adminBookingApi';
+import { getAllBookings, getBookingById, createBooking, updateBooking, cancelBooking, BookingDTO } from '../api/adminBookingApi';
+import { paymentConfirmationApi, PaymentConfirmationDTO } from '../api/paymentConfirmationApi';
 
-// Form data interface khớp với BookingDTO backend
 interface BookingFormData {
   id?: number;
   userId?: number;
@@ -56,6 +27,14 @@ const statusOptions = [
   { value: 'CANCELLED', label: 'Đã huỷ', color: 'danger' }
 ];
 
+const paymentStatusConfig = {
+  PENDING: { label: 'Chờ xác nhận', color: 'warning', icon: AlertCircle },
+  SUCCESS: { label: 'Đã xác nhận', color: 'success', icon: CheckCircle },
+  REJECTED: { label: 'Đã từ chối', color: 'danger', icon: XCircle },
+  FAILED: { label: 'Thất bại', color: 'danger', icon: AlertCircle },
+  CANCELED: { label: 'Đã huỷ', color: 'secondary', icon: XCircle }
+};
+
 const AdminBookingDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -65,6 +44,14 @@ const AdminBookingDetailsPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  
+  // Payment confirmation states
+  const [paymentConfirmations, setPaymentConfirmations] = useState<PaymentConfirmationDTO[]>([]);
+  const [loadingPayments, setLoadingPayments] = useState(false);
+  const [processingPayment, setProcessingPayment] = useState<number | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<PaymentConfirmationDTO | null>(null);
+  const [adminNote, setAdminNote] = useState('');
   
   const [formData, setFormData] = useState<BookingFormData>({
     username: '',
@@ -85,7 +72,6 @@ const AdminBookingDetailsPage: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      // Sử dụng API getBookingById
       const booking = await getBookingById(parseInt(id!));
       
       if (!booking) {
@@ -93,11 +79,10 @@ const AdminBookingDetailsPage: React.FC = () => {
         return;
       }
 
-      // Format datetime cho input datetime-local
       const formatDateTimeForInput = (dateTime?: string) => {
         if (!dateTime) return '';
         const date = new Date(dateTime);
-        return date.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:mm
+        return date.toISOString().slice(0, 16);
       };
 
       const bookingData: BookingFormData = {
@@ -114,12 +99,80 @@ const AdminBookingDetailsPage: React.FC = () => {
 
       setFormData(bookingData);
       setOriginalData(bookingData);
+      
+      // Fetch payment confirmations for this booking
+      if (booking.id) {
+        await fetchPaymentConfirmations(booking.id);
+      }
     } catch (error) {
       console.error('Lỗi khi tải thông tin đặt bàn:', error);
       setError('Không thể tải thông tin đặt bàn');
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchPaymentConfirmations = async (bookingId: number) => {
+    try {
+      setLoadingPayments(true);
+      const confirmations = await paymentConfirmationApi.getConfirmationsByBooking(bookingId);
+      setPaymentConfirmations(confirmations);
+    } catch (error) {
+      console.error('Lỗi khi tải thông tin xác nhận thanh toán:', error);
+    } finally {
+      setLoadingPayments(false);
+    }
+  };
+
+  const handlePaymentAction = async (paymentId: number, action: 'confirm' | 'reject') => {
+    if (!adminNote.trim()) {
+      setError('Vui lòng nhập ghi chú admin');
+      return;
+    }
+
+    try {
+      setProcessingPayment(paymentId);
+      setError(null);
+
+      if (action === 'confirm') {
+        await paymentConfirmationApi.confirmPayment(paymentId, adminNote);
+      } else {
+        await paymentConfirmationApi.rejectPayment(paymentId, adminNote);
+      }
+
+      // Refresh payment confirmations
+      if (formData.id) {
+        await fetchPaymentConfirmations(formData.id);
+      }
+      
+      setShowPaymentModal(false);
+      setSelectedPayment(null);
+      setAdminNote('');
+      
+    } catch (error) {
+      console.error(`Lỗi khi ${action === 'confirm' ? 'xác nhận' : 'từ chối'} thanh toán:`, error);
+      setError(`Không thể ${action === 'confirm' ? 'xác nhận' : 'từ chối'} thanh toán`);
+    } finally {
+      setProcessingPayment(null);
+    }
+  };
+
+  const openPaymentModal = (payment: PaymentConfirmationDTO, action: 'confirm' | 'reject') => {
+    setSelectedPayment(payment);
+    setShowPaymentModal(true);
+    setAdminNote('');
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(amount);
+  };
+
+  const formatDateTime = (dateTime?: string) => {
+    if (!dateTime) return 'N/A';
+    return new Date(dateTime).toLocaleString('vi-VN');
   };
 
   const handleInputChange = (field: keyof BookingFormData, value: any) => {
@@ -154,12 +207,10 @@ const AdminBookingDetailsPage: React.FC = () => {
       setSaving(true);
       setError(null);
 
-      // Format datetime cho backend (ISO string)
       const formatDateTimeForAPI = (dateTime: string) => {
         return new Date(dateTime).toISOString();
       };
 
-      // Create data object for API
       const apiData: Partial<BookingDTO> = {
         username: formData.username,
         tableId: formData.tableId,
@@ -175,14 +226,16 @@ const AdminBookingDetailsPage: React.FC = () => {
       if (isNewBooking) {
         result = await createBooking(apiData);
         alert('Tạo đặt bàn mới thành công!');
+        navigate(`/admin/bookings/${result.id}`);
       } else {
         apiData.id = formData.id;
         result = await updateBooking(formData.id!, apiData);
         alert('Cập nhật đặt bàn thành công!');
+        // Refresh data
+        if (result.id) {
+          await fetchBookingDetails();
+        }
       }
-
-      console.log('Kết quả:', result);
-      navigate('/admin/bookings');
     } catch (error) {
       console.error('Lỗi khi lưu:', error);
       setError('Không thể lưu thông tin. Vui lòng thử lại.');
@@ -313,10 +366,10 @@ const AdminBookingDetailsPage: React.FC = () => {
                     <Form.Label className="fw-medium">
                       Số bàn <span className="text-danger">*</span>
                     </Form.Label>
-                    <div className="input-group">
-                      <span className="input-group-text bg-light">
+                    <InputGroup>
+                      <InputGroup.Text className="bg-light">
                         <MapPin size={16} />
-                      </span>
+                      </InputGroup.Text>
                       <Form.Control
                         type="number"
                         value={formData.tableId}
@@ -324,7 +377,7 @@ const AdminBookingDetailsPage: React.FC = () => {
                         min="1"
                         required
                       />
-                    </div>
+                    </InputGroup>
                   </Col>
                 </Row>
 
@@ -333,26 +386,26 @@ const AdminBookingDetailsPage: React.FC = () => {
                     <Form.Label className="fw-medium">
                       Thời gian đặt bàn <span className="text-danger">*</span>
                     </Form.Label>
-                    <div className="input-group">
-                      <span className="input-group-text bg-light">
+                    <InputGroup>
+                      <InputGroup.Text className="bg-light">
                         <Clock size={16} />
-                      </span>
+                      </InputGroup.Text>
                       <Form.Control
                         type="datetime-local"
                         value={formData.bookingTime}
                         onChange={(e) => handleInputChange('bookingTime', e.target.value)}
                         required
                       />
-                    </div>
+                    </InputGroup>
                   </Col>
                   <Col md={6} className="mb-3">
                     <Form.Label className="fw-medium">
                       Số người <span className="text-danger">*</span>
                     </Form.Label>
-                    <div className="input-group">
-                      <span className="input-group-text bg-light">
+                    <InputGroup>
+                      <InputGroup.Text className="bg-light">
                         <Users size={16} />
-                      </span>
+                      </InputGroup.Text>
                       <Form.Control
                         type="number"
                         value={formData.numberOfGuests}
@@ -361,7 +414,7 @@ const AdminBookingDetailsPage: React.FC = () => {
                         max="20"
                         required
                       />
-                    </div>
+                    </InputGroup>
                   </Col>
                 </Row>
 
@@ -381,8 +434,8 @@ const AdminBookingDetailsPage: React.FC = () => {
                   </Col>
                   <Col md={6} className="mb-3">
                     <Form.Label className="fw-medium">Tổng tiền</Form.Label>
-                    <div className="input-group">
-                      <span className="input-group-text bg-light">₫</span>
+                    <InputGroup>
+                      <InputGroup.Text className="bg-light">₫</InputGroup.Text>
                       <Form.Control
                         type="number"
                         value={formData.totalAmount || 0}
@@ -390,7 +443,7 @@ const AdminBookingDetailsPage: React.FC = () => {
                         min="0"
                         step="1000"
                       />
-                    </div>
+                    </InputGroup>
                   </Col>
                 </Row>
 
@@ -407,6 +460,99 @@ const AdminBookingDetailsPage: React.FC = () => {
               </Form>
             </Card.Body>
           </Card>
+
+          {/* Payment Confirmations Section */}
+          {!isNewBooking && (
+            <Card className="border-0 shadow-sm mb-4">
+              <Card.Header className="bg-white border-bottom">
+                <div className="d-flex align-items-center justify-content-between">
+                  <h5 className="mb-0 fw-semibold">
+                    <CreditCard className="me-2" size={20} />
+                    Xác nhận thanh toán
+                  </h5>
+                  {loadingPayments && <Spinner size="sm" />}
+                </div>
+              </Card.Header>
+              <Card.Body>
+                {paymentConfirmations.length === 0 ? (
+                  <div className="text-center py-4 text-muted">
+                    <CreditCard size={48} className="mb-3 opacity-50" />
+                    <p className="mb-0">Chưa có yêu cầu xác nhận thanh toán nào</p>
+                  </div>
+                ) : (
+                  <div className="table-responsive">
+                    <Table striped hover>
+                      <thead>
+                        <tr>
+                          <th>ID</th>
+                          <th>Số tiền</th>
+                          <th>Phương thức</th>
+                          <th>Trạng thái</th>
+                          <th>Ngày tạo</th>
+                          <th>Ghi chú khách hàng</th>
+                          <th>Thao tác</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paymentConfirmations.map((payment) => {
+                          const statusConfig = paymentStatusConfig[payment.status];
+                          const StatusIcon = statusConfig.icon;
+                          
+                          return (
+                            <tr key={payment.id}>
+                              <td>#{payment.id}</td>
+                              <td className="fw-semibold">
+                                {formatCurrency(payment.amount)}
+                              </td>
+                              <td>{payment.paymentMethod || 'N/A'}</td>
+                              <td>
+                                <Badge bg={statusConfig.color} className="d-flex align-items-center w-fit">
+                                  <StatusIcon size={14} className="me-1" />
+                                  {statusConfig.label}
+                                </Badge>
+                              </td>
+                              <td>{formatDateTime(payment.createdAt)}</td>
+                              <td>
+                                <small>{payment.customerNote || 'Không có'}</small>
+                              </td>
+                              <td>
+                                {payment.status === 'PENDING' && (
+                                  <div className="d-flex gap-1">
+                                    <Button
+                                      size="sm"
+                                      variant="outline-success"
+                                      onClick={() => openPaymentModal(payment, 'confirm')}
+                                      disabled={processingPayment === payment.id}
+                                    >
+                                      <CheckCircle size={14} />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline-danger"
+                                      onClick={() => openPaymentModal(payment, 'reject')}
+                                      disabled={processingPayment === payment.id}
+                                    >
+                                      <XCircle size={14} />
+                                    </Button>
+                                  </div>
+                                )}
+                                {payment.status !== 'PENDING' && (
+                                  <small className="text-muted">
+                                    Đã xử lý bởi: {payment.processedBy}<br/>
+                                    {formatDateTime(payment.processedAt)}
+                                  </small>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </Table>
+                  </div>
+                )}
+              </Card.Body>
+            </Card>
+          )}
         </Col>
 
         <Col xl={4}>
@@ -459,12 +605,28 @@ const AdminBookingDetailsPage: React.FC = () => {
               </div>
 
               {!isNewBooking && (
-                <div className="mt-4 pt-3 border-top">
-                  <small className="text-muted">
-                    <strong>Được tạo:</strong> {formData.bookingTime}<br/>
-                    <strong>ID:</strong> #{formData.id}
-                  </small>
-                </div>
+                <>
+                  <hr className="my-4" />
+                  <div className="text-muted small">
+                    <div className="d-flex justify-content-between mb-2">
+                      <span>ID:</span>
+                      <span>#{formData.id}</span>
+                    </div>
+                    <div className="d-flex justify-content-between mb-2">
+                      <span>Tổng tiền:</span>
+                      <span className="fw-semibold text-primary">
+                        {formatCurrency(formData.totalAmount || 0)}
+                      </span>
+                    </div>
+                    <div className="d-flex justify-content-between">
+                      <span>Xác nhận thanh toán:</span>
+                      <span>
+                        {paymentConfirmations.filter(p => p.status === 'SUCCESS').length}/
+                        {paymentConfirmations.length}
+                      </span>
+                    </div>
+                  </div>
+                </>
               )}
             </Card.Body>
           </Card>
@@ -496,6 +658,81 @@ const AdminBookingDetailsPage: React.FC = () => {
           <Button variant="danger" onClick={handleDelete}>
             <Trash2 size={16} className="me-2" />
             Có, huỷ đặt bàn
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Payment Action Modal */}
+      <Modal show={showPaymentModal} onHide={() => setShowPaymentModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>
+            {selectedPayment && (
+              <>
+                {processingPayment ? 'Xác nhận' : 'Từ chối'} thanh toán #{selectedPayment.id}
+              </>
+            )}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedPayment && (
+            <>
+              <div className="mb-3">
+                <h6>Thông tin thanh toán:</h6>
+                <ul className="list-unstyled">
+                  <li><strong>Số tiền:</strong> {formatCurrency(selectedPayment.amount)}</li>
+                  <li><strong>Phương thức:</strong> {selectedPayment.paymentMethod || 'N/A'}</li>
+                  <li><strong>Mã giao dịch:</strong> {selectedPayment.transactionReference || 'N/A'}</li>
+                  <li><strong>Ghi chú KH:</strong> {selectedPayment.customerNote || 'Không có'}</li>
+                </ul>
+              </div>
+              
+              <Form.Group>
+                <Form.Label className="fw-medium">
+                  Ghi chú admin <span className="text-danger">*</span>
+                </Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={3}
+                  value={adminNote}
+                  onChange={(e) => setAdminNote(e.target.value)}
+                  placeholder="Nhập ghi chú về quyết định này..."
+                  required
+                />
+              </Form.Group>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button 
+            variant="outline-secondary" 
+            onClick={() => setShowPaymentModal(false)}
+            disabled={processingPayment !== null}
+          >
+            Hủy
+          </Button>
+          <Button 
+            variant="success" 
+            onClick={() => handlePaymentAction(selectedPayment!.id, 'confirm')}
+            disabled={processingPayment !== null || !adminNote.trim()}
+          >
+            {processingPayment === selectedPayment?.id ? (
+              <Spinner size="sm" className="me-2" />
+            ) : (
+              <CheckCircle size={16} className="me-2" />
+            )}
+            Xác nhận
+          </Button>
+          <Button 
+            variant="danger" 
+            onClick={() => handlePaymentAction(selectedPayment!.id, 'reject')}
+            disabled={processingPayment !== null || !adminNote.trim()}
+          >
+            {processingPayment === selectedPayment?.id ? (
+              <Spinner size="sm" className="me-2" />
+            ) : (
+              <XCircle size={16} className="me-2" />
+            )}
+            Từ chối
           </Button>
         </Modal.Footer>
       </Modal>

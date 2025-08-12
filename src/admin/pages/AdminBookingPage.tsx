@@ -1,31 +1,6 @@
-// src/admin/pages/AdminBookingPage.tsx
 import React, { useEffect, useState } from 'react';
-import { 
-  Container, 
-  Row, 
-  Col, 
-  Card, 
-  Table, 
-  Button, 
-  Badge, 
-  Spinner, 
-  Alert,
-  InputGroup,
-  Form,
-  ButtonGroup,
-  OverlayTrigger,
-  Tooltip
-} from 'react-bootstrap';
-import { 
-  Search, 
-  Eye, 
-  XCircle, 
-  Calendar, 
-  Users, 
-  Clock,
-  Filter,
-  RefreshCw
-} from 'lucide-react';
+import { Container, Row, Col, Card, Table, Button, Badge, Spinner, Alert, InputGroup, Form, OverlayTrigger, Tooltip } from 'react-bootstrap';
+import { Search, Eye, XCircle, Calendar, Users, Clock, Filter, RefreshCw } from 'lucide-react';
 import { getAllBookings, cancelBooking, BookingDTO } from '../api/adminBookingApi';
 
 const statusLabel = (status?: string): string => {

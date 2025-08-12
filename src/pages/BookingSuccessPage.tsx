@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button, Alert } from 'react-bootstrap';
 import PaymentComponent from '../components/PaymentComponent';
+import PaymentStatusTracker from '../components/PaymentStatusTracker';
 import { PaymentStatus } from '../api/paymentApi';
+import { PaymentConfirmationDTO } from '../admin/api/paymentConfirmationApi';
 import '../assets/css/BookingSuccess.css';
 
 const BookingSuccessPage: React.FC = () => {
@@ -13,6 +15,9 @@ const BookingSuccessPage: React.FC = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | null>(null);
   const [paymentError, setPaymentError] = useState<string>('');
+  
+  // Payment confirmation tracking
+  const [paymentConfirmation, setPaymentConfirmation] = useState<PaymentConfirmationDTO | null>(null);
 
   if (!state) {
     navigate('/');
@@ -27,8 +32,7 @@ const BookingSuccessPage: React.FC = () => {
     note,
     preOrderDishes,
     email,
-    bookingId,
-    tableId
+    bookingId
   } = state;
 
   const total = preOrderDishes?.reduce(
@@ -49,6 +53,22 @@ const BookingSuccessPage: React.FC = () => {
     console.error('Payment error:', error);
   };
 
+  const handleConfirmationStatusChange = (confirmation: PaymentConfirmationDTO | null) => {
+    setPaymentConfirmation(confirmation);
+    if (confirmation?.status === 'SUCCESS') {
+      // Tự động cập nhật payment status khi được admin xác nhận
+      setPaymentStatus({
+        id: confirmation.id,
+        bookingId: bookingId,
+        amount: confirmation.amount,
+        paymentMethod: confirmation.paymentMethod,
+        status: 'SUCCESS',
+        paymentTime: confirmation.processedAt || confirmation.createdAt,
+        transactionId: confirmation.transactionReference
+      });
+    }
+  };
+
   const handleOpenPayment = () => {
     if (!bookingId || !total || total <= 0) {
       setPaymentError('Không thể thực hiện thanh toán: Thiếu thông tin đặt bàn hoặc số tiền');
@@ -56,6 +76,22 @@ const BookingSuccessPage: React.FC = () => {
     }
     setShowPaymentModal(true);
     setPaymentError('');
+  };
+
+  const canMakePayment = () => {
+    return bookingId && 
+           total && 
+           total > 0 && 
+           !paymentStatus && 
+           (!paymentConfirmation || paymentConfirmation.status !== 'SUCCESS');
+  };
+
+  const hasPaymentRequest = () => {
+    return paymentConfirmation !== null;
+  };
+
+  const isPaymentCompleted = () => {
+    return paymentStatus || paymentConfirmation?.status === 'SUCCESS';
   };
 
   return (
@@ -78,7 +114,7 @@ const BookingSuccessPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Payment Status Alert */}
+        {/* Payment Status Alert - Hiển thị khi thanh toán thành công */}
         {paymentStatus && (
           <Alert variant="success" className="mt-3">
             <Alert.Heading>
@@ -97,6 +133,7 @@ const BookingSuccessPage: React.FC = () => {
           </Alert>
         )}
 
+        {/* Payment Error Alert */}
         {paymentError && (
           <Alert variant="danger" className="mt-3" dismissible onClose={() => setPaymentError('')}>
             <i className="bi bi-exclamation-triangle me-2"></i>
@@ -149,22 +186,79 @@ const BookingSuccessPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Simplified Payment Section - Now handled by PaymentComponent */}
-            {!paymentStatus && (
-              <div className="mt-4 text-center">
-                <div className="alert alert-info">
-                  <i className="bi bi-info-circle me-2"></i>
-                  <strong>Thanh toán ngay để hoàn tất đặt bàn</strong>
-                </div>
-                <Button 
-                  variant="success" 
-                  size="lg" 
-                  onClick={handleOpenPayment}
-                  disabled={!bookingId || !total || total <= 0}
-                >
+            {/* Payment Status Tracker - Hiển thị khi có thể thanh toán hoặc đã có yêu cầu */}
+            {bookingId && (canMakePayment() || hasPaymentRequest()) && (
+              <div className="mt-4">
+                <h5>
                   <i className="bi bi-credit-card me-2"></i>
-                  Thanh toán ({total.toLocaleString()}₫)
-                </Button>
+                  Trạng thái thanh toán
+                </h5>
+                <PaymentStatusTracker
+                  bookingId={bookingId}
+                  onStatusChange={handleConfirmationStatusChange}
+                  autoRefresh={true}
+                  refreshInterval={10000} // 10 giây - thường xuyên hơn cho trang success
+                />
+              </div>
+            )}
+
+            {/* Payment Action Section */}
+            {!isPaymentCompleted() && (
+              <div className="mt-4 text-center">
+                {!hasPaymentRequest() ? (
+                  // Chưa có yêu cầu thanh toán nào
+                  <>
+                    <div className="alert alert-info">
+                      <i className="bi bi-info-circle me-2"></i>
+                      <strong>Thanh toán ngay để hoàn tất đặt bàn</strong>
+                    </div>
+                    <Button 
+                      variant="success" 
+                      size="lg" 
+                      onClick={handleOpenPayment}
+                      disabled={!canMakePayment()}
+                    >
+                      <i className="bi bi-credit-card me-2"></i>
+                      Thanh toán ({total.toLocaleString()}₫)
+                    </Button>
+                  </>
+                ) : (
+                  // Đã có yêu cầu thanh toán, cho phép thanh toán lại nếu cần
+                  paymentConfirmation?.status === 'PENDING' && (
+                    <div className="alert alert-warning">
+                      <i className="bi bi-clock me-2"></i>
+                      <strong>Yêu cầu thanh toán đang được xử lý</strong>
+                      <br/>
+                      <small>Bạn có thể thực hiện thanh toán bằng phương thức khác nếu cần thiết</small>
+                      <div className="mt-2">
+                        <Button 
+                          variant="outline-success" 
+                          onClick={handleOpenPayment}
+                          disabled={!canMakePayment()}
+                        >
+                          <i className="bi bi-credit-card me-2"></i>
+                          Thanh toán bằng phương thức khác
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                )}
+              </div>
+            )}
+
+            {/* Completed Payment Success Message */}
+            {isPaymentCompleted() && !paymentStatus && paymentConfirmation?.status === 'SUCCESS' && (
+              <div className="mt-4">
+                <Alert variant="success">
+                  <Alert.Heading>
+                    <i className="bi bi-check-circle me-2"></i>
+                    Thanh toán đã được xác nhận!
+                  </Alert.Heading>
+                  <p className="mb-0">
+                    Thanh toán của bạn đã được nhà hàng xác nhận thành công. 
+                    Cảm ơn bạn đã tin tương và sử dụng dịch vụ!
+                  </p>
+                </Alert>
               </div>
             )}
           </>
@@ -189,12 +283,19 @@ const BookingSuccessPage: React.FC = () => {
               <i className="bi bi-printer me-2"></i>
               In hóa đơn
             </Button>
-            {preOrderDishes && preOrderDishes.length > 0 && !paymentStatus && (
+            <Button 
+              variant="outline-info" 
+              className="px-4"
+              onClick={() => navigate('/booking-history')}
+            >
+              <i className="bi bi-list me-2"></i>
+              Xem lịch sử đặt bàn
+            </Button>
+            {canMakePayment() && !hasPaymentRequest() && (
               <Button 
                 variant="outline-success" 
                 className="px-4"
                 onClick={handleOpenPayment}
-                disabled={!bookingId || !total || total <= 0}
               >
                 <i className="bi bi-credit-card me-2"></i>
                 Thanh toán ngay
