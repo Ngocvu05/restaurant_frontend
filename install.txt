@@ -37,3 +37,9 @@ npm install --save-dev @types/jwt-decode
 
 npm install -g ngrok
 npm install @react-oauth/google jwt-decode @types/facebook-js-sdk
+
+npm i -E react-datepicker@latest
+npm i -D -E @types/react-datepicker
+npm install react-datepicker
+
+npm install -g npm@11.5.2

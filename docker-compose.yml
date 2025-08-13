@@ -1,6 +1,63 @@
+networks:
+  backend_net:
+    external: true   # use network created in the backend
+
 services:
-  restaurantfrontend:
-    image: restaurantfrontend
+  frontend:
     build:
       context: .
-      dockerfile: ./Dockerfile
+      dockerfile: Dockerfile
+    image: restaurant-frontend:latest
+    container_name: restaurant-frontend
+    ports:
+      - "80:80"    # change to 80 for HTTP
+      - "443:443"  # add HTTPS support
+    restart: unless-stopped
+    networks:
+      - backend_net
+    environment:
+      # Environment variables cho nginx template
+      - API_GATEWAY_HOST=api-gateway
+      - API_GATEWAY_PORT=8080
+      - SERVER_NAME=localhost  # domain name
+    volumes:
+      # Mount SSL certificates nếu cần HTTPS
+      # - ./ssl:/etc/nginx/ssl:ro
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      # ensure API Gateway is ready before starting frontend
+      - api-gateway-check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Service check API Gateway is ready
+  api-gateway-check:
+    image: curlimages/curl:latest
+    container_name: api-gateway-check
+    networks:
+      - backend_net
+    command: >
+      sh -c "
+        echo 'Waiting for API Gateway...';
+        until curl -f http://api-gateway:8080/actuator/health; do
+          echo 'API Gateway not ready, waiting...';
+          sleep 5;
+        done;
+        echo 'API Gateway is ready!';
+      "
+    depends_on:
+      - api-gateway-proxy
+    restart: "no"
+
+  # Create a proxy service for API Gateway
+  api-gateway-proxy:
+    image: alpine:latest
+    container_name: api-gateway-proxy
+    networks:
+      - backend_net
+    command: sleep infinity
+    restart: "no"
