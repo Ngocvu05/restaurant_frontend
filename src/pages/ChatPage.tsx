@@ -5,7 +5,6 @@ import { ChatMessageDTO } from '../api/chatApi';
 import { chatApi } from '../api/chatApi';
 import '../assets/css/Chat.css';
 
-// Theme Context
 interface ThemeContextType {
   isDark: boolean;
   toggleTheme: () => void;

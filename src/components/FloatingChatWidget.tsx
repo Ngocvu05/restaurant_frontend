@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, UIEvent } from 'react';
 import SockJS from 'sockjs-client';
 import { Client, IMessage } from '@stomp/stompjs';
-import { MessageCircle, X } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 import { chatApi } from '../api/chatApi';
 import '../assets/css/FloatingChatWidget.css';
 

@@ -31,7 +31,7 @@ export interface RegisterRequest {
 }
 
 class AuthApiService {
-  private readonly baseUrl = '/auth';
+  private readonly baseUrl = '/api/v1/auth';
 
   /**
    * Register new user
@@ -309,7 +309,7 @@ class AuthApiService {
   async testProtectedRoute(): Promise<any> {
     try {
       console.log('🧪 Testing protected route...');
-      const response = await api.get('/bookings'); // Hoặc endpoint protected nào đó
+      const response = await api.get('/bookings');
       console.log('✅ Protected route test successful');
       return response.data;
     } catch (error: any) {

@@ -9,6 +9,7 @@ import '../assets/css/HomePage.css';
 import { Link } from 'react-router-dom';
 import { useLoading } from '../context/LoadingContext';
 
+
 interface Dish {
   id: number;
   name: string;
@@ -28,8 +29,8 @@ const HomePage: React.FC = () => {
 useEffect(() => {
   setLoading(true);
 
-  const fetchDishes = api.get('/home/dishes');
-  const fetchPopularDishes = api.get('/home/popular-dishes');
+  const fetchDishes = api.get('/api/v1/home/dishes');
+  const fetchPopularDishes = api.get('/api/v1/home/popular-dishes');
 
   Promise.allSettled([fetchDishes, fetchPopularDishes])
     .then(results => {

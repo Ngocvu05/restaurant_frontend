@@ -12,8 +12,8 @@ interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
  * Configuration được lấy từ environment variables
  */
 export const api = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL || '/api',
-  withCredentials: true, // use cookie/session for same-origin
+  baseURL: process.env.REACT_APP_API_BASE_URL || '/',
+  withCredentials: true,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -118,7 +118,7 @@ api.interceptors.response.use(
       if (refreshToken && !TokenManager.isTokenExpired(refreshToken)) {
         try {
           // Gọi refresh token endpoint
-          const refreshResponse = await axios.post('/api/users/api/auth/refresh-token', {
+          const refreshResponse = await axios.post('/users/api/auth/refresh-token', {
             refreshToken: refreshToken
           }, {
             withCredentials: true,

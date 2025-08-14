@@ -92,7 +92,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
     }
-  }, []); // Empty dependency array - run only once
+  }, [loadCartFromApi]); // Empty dependency array - run only once
 
   // Save cart to localStorage for non-logged users
   useEffect(() => {

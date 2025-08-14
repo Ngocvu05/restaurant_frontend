@@ -13,16 +13,6 @@ interface OAuth2Response {
   };
 }
 
-interface OAuth2Request {
-  provider: 'google' | 'facebook';
-  accessToken: string;
-  sessionId: string;
-  email: string;
-  name: string;
-  picture: string;
-  providerId: string;
-}
-
 interface OAuth2LoginButtonsProps {
   onSuccess: (response: OAuth2Response) => void;
   onError: (error: string) => void;
@@ -480,20 +470,6 @@ const OAuth2LoginButtons: React.FC<OAuth2LoginButtonsProps> = ({
           </button>
         </div>
       </div>
-
-      {/* Enhanced debug info - remove in production */}
-      {/* {process.env.NODE_ENV === 'development' && (
-        <div className="row mt-2">
-          <div className="col-12">
-            <small className="text-muted">
-              FB Loaded: {fbLoaded ? '✓' : '✗'} | 
-              FB Initialized: {fbInitialized ? '✓' : '✗'} | 
-              App ID: {process.env.REACT_APP_FACEBOOK_APP_ID ? '✓' : '✗'} |
-              Attempts: {initializationAttempts}
-            </small>
-          </div>
-        </div>
-      )} */}
     </div>
   );
 };

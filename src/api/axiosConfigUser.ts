@@ -1,18 +1,18 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { TokenManager } from './axiosApiConfig';
 
-// Extend AxiosRequestConfig để thêm _retry property
 interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
 }
 
 /**
  * Instance cho Users API
- * Sử dụng same-origin pattern như axiosApiConfig
- * Nginx proxy: /api/users -> api-gateway:8080/users
+ * Frontend call: /users/* -> nginx proxy -> gateway: /users/*
+ * 
+ * UPDATED: Sử dụng /users để match với nginx routing mới
  */
 export const usersApi = axios.create({
-  baseURL: '/api/users/api',
+  baseURL: '/users',  // Thay đổi từ '/users' thành '/users' trực tiếp
   withCredentials: true,
   timeout: 30000,
   headers: {
@@ -21,9 +21,6 @@ export const usersApi = axios.create({
   },
 });
 
-/**
- * Public endpoints that don't require authentication
- */
 const PUBLIC_ENDPOINTS = [
   '/auth/login',
   '/auth/register',
@@ -38,20 +35,16 @@ const PUBLIC_ENDPOINTS = [
   '/public'
 ];
 
-/**
- * Check if endpoint is public
- */
 function isPublicEndpoint(url?: string): boolean {
   if (!url) return false;
   return PUBLIC_ENDPOINTS.some(endpoint => url.includes(endpoint));
 }
 
-// Request interceptor: set token vào header cho protected endpoints
 usersApi.interceptors.request.use(
   (config) => {
-    // Kiểm tra các endpoint public không cần token
     const isPublic = isPublicEndpoint(config.url);
 
+    // Add authentication for non-public endpoints
     if (!isPublic) {
       const token = TokenManager.getAccessToken();
       if (token && !TokenManager.isTokenExpired(token)) {
@@ -60,14 +53,15 @@ usersApi.interceptors.request.use(
       }
     }
 
-    // Thêm request metadata
+    // Add custom headers for debugging
     config.headers = config.headers ?? {};
     config.headers['X-User-Client'] = 'web';
     config.headers['X-Request-ID'] = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    // Log user API requests trong development
     if (process.env.NODE_ENV === 'development') {
-      console.log(`Users API Request [${config.method?.toUpperCase()}] ${config.url}`, {
+      console.log(`🚀 Users API Request [${config.method?.toUpperCase()}] ${config.url}`, {
+        baseURL: config.baseURL,
+        fullURL: `${config.baseURL}${config.url}`,
         isPublic,
         hasAuth: !!config.headers.Authorization
       });
@@ -76,26 +70,28 @@ usersApi.interceptors.request.use(
     return config;
   },
   (error) => {
-    console.error('Users API request interceptor error:', error);
+    console.error('❌ Users API request interceptor error:', error);
     return Promise.reject(error);
   }
 );
 
-// Response interceptor: handle errors globally với refresh token
 usersApi.interceptors.response.use(
   (response) => {
-    // Log successful responses trong development
     if (process.env.NODE_ENV === 'development') {
-      console.log(`Users API Response [${response.config.method?.toUpperCase()}] ${response.config.url}:`, response.status);
+      console.log(`✅ Users API Response [${response.config.method?.toUpperCase()}] ${response.config.url}:`, {
+        status: response.status,
+        data: response.data
+      });
     }
 
-    // Handle successful login/register - store tokens
+    // Handle authentication responses
     if (response.config.url?.includes('/auth/login') || 
         response.config.url?.includes('/auth/register') ||
         response.config.url?.includes('/auth/oauth/')) {
       const { token, refreshToken } = response.data;
       if (token) {
         TokenManager.setTokens(token, refreshToken);
+        console.log('🔑 Tokens updated after successful auth');
       }
     }
 
@@ -104,15 +100,16 @@ usersApi.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as ExtendedAxiosRequestConfig;
 
-    // Log errors
-    console.error('Users API Error:', {
+    console.error('❌ Users API Error:', {
       url: originalRequest?.url,
+      fullURL: `${originalRequest?.baseURL}${originalRequest?.url}`,
       method: originalRequest?.method,
       status: error.response?.status,
-      message: error.message
+      message: error.message,
+      responseData: error.response?.data
     });
 
-    // Xử lý 401 với refresh token cho protected endpoints
+    // Handle 401 with refresh token logic
     if (error.response?.status === 401 && 
         originalRequest && 
         !originalRequest._retry &&
@@ -124,8 +121,10 @@ usersApi.interceptors.response.use(
       
       if (refreshToken && !TokenManager.isTokenExpired(refreshToken)) {
         try {
-          // Sử dụng axios instance mới để tránh interceptor loop
-          const refreshResponse = await axios.post('/api/users/api/auth/refresh-token', {
+          console.log('🔄 Attempting token refresh...');
+          
+          // UPDATED: Sử dụng /users/api/v1/auth/refresh-token thay vì /api/users/api/v1/auth/refresh-token
+          const refreshResponse = await axios.post('/users/api/v1/auth/refresh-token', {
             refreshToken: refreshToken
           }, {
             withCredentials: true,
@@ -138,39 +137,31 @@ usersApi.interceptors.response.use(
           const { token: newToken, refreshToken: newRefreshToken } = refreshResponse.data;
 
           if (newToken) {
-            // Cập nhật tokens
             TokenManager.setTokens(newToken, newRefreshToken);
-
-            // Retry original request với token mới
             originalRequest.headers = originalRequest.headers ?? {};
             originalRequest.headers.Authorization = `Bearer ${newToken}`;
             
+            console.log('✅ Token refreshed successfully, retrying original request');
             return usersApi(originalRequest);
           }
         } catch (refreshError) {
-          console.error('Users API token refresh failed:', refreshError);
-          // Refresh token thất bại - clear storage và redirect
+          console.error('❌ Users API token refresh failed:', refreshError);
           TokenManager.clearTokens();
           redirectToLogin('Session expired');
           return Promise.reject(refreshError);
         }
       } else {
-        // Không có refresh token hoặc đã expired - redirect login
+        console.log('🚫 No valid refresh token, redirecting to login');
         TokenManager.clearTokens();
         redirectToLogin('Authentication required');
       }
     }
 
-    // Handle user-specific errors
     handleUserErrors(error);
-
     return Promise.reject(error);
   }
 );
 
-/**
- * Handle user-specific errors
- */
 function handleUserErrors(error: AxiosError) {
   const status = error.response?.status;
   const data = error.response?.data as any;
@@ -178,50 +169,45 @@ function handleUserErrors(error: AxiosError) {
   switch (status) {
     case 400:
       if (data?.message?.includes('email')) {
-        console.warn('Invalid email format or email already exists');
+        console.warn('⚠️ Invalid email format or email already exists');
       } else if (data?.message?.includes('password')) {
-        console.warn('Invalid password format or password too weak');
+        console.warn('⚠️ Invalid password format or password too weak');
       } else {
-        console.warn('Bad request - check input data');
+        console.warn('⚠️ Bad request - check input data');
       }
       break;
     case 403:
-      console.warn('Access forbidden - insufficient permissions or account locked');
+      console.warn('⚠️ Access forbidden - insufficient permissions or account locked');
       break;
     case 404:
       if (error.config?.url?.includes('/auth/')) {
-        console.warn('Authentication endpoint not found');
+        console.warn('⚠️ Authentication endpoint not found - check API routing');
       } else {
-        console.warn('User or resource not found');
+        console.warn('⚠️ User or resource not found');
       }
       break;
     case 409:
-      console.warn('Conflict - user already exists or duplicate data');
+      console.warn('⚠️ Conflict - user already exists or duplicate data');
       break;
     case 422:
-      console.warn('Validation error - check required fields');
+      console.warn('⚠️ Validation error - check required fields');
       break;
     case 429:
-      console.warn('Rate limit exceeded - too many login attempts');
+      console.warn('⚠️ Rate limit exceeded - too many login attempts');
       break;
     default:
       if (status && status >= 500) {
-        console.error('User service error - authentication may be unavailable');
+        console.error('❌ User service error - authentication may be unavailable');
       }
   }
 
-  // Log specific error details
   if (data && (data.message || data.errors)) {
-    console.error('Users API Error Details:', data.message || data.errors);
+    console.error('📋 Users API Error Details:', data.message || data.errors);
   }
 }
 
-/**
- * Redirect to login with user context
- */
 function redirectToLogin(reason?: string) {
   if (window.location.pathname !== '/login') {
-    // Store current location và reason
     const currentPath = window.location.pathname + window.location.search;
     sessionStorage.setItem('redirectAfterLogin', currentPath);
     
@@ -229,87 +215,108 @@ function redirectToLogin(reason?: string) {
       sessionStorage.setItem('loginReason', reason);
     }
     
+    console.log(`🔄 Redirecting to login: ${reason || 'Authentication required'}`);
     window.location.href = '/login';
   }
 }
 
-/**
- * User-specific utilities
- */
+// ===== ENHANCED USER UTILS =====
 export const userUtils = {
-  // Check if user service is available
+  // Health check với proper error handling
   checkUserHealth: async () => {
     try {
       const response = await usersApi.get('/health');
+      console.log('✅ User service health check passed');
       return response.status === 200;
-    } catch {
+    } catch (error) {
+      console.error('❌ User service health check failed:', error);
       return false;
     }
   },
   
-  // Login with email/password
-  login: async (email: string, password: string) => {
-    const response = await usersApi.post('/auth/login', {
-      email: email.trim().toLowerCase(),
-      password
-    });
-    return response.data;
+  // Test API connectivity 
+  testAPIConnection: async () => {
+    try {
+      console.log('🧪 Testing API connection...');
+      // UPDATED: Sử dụng /users/api/v1/health thay vì /api/users/api/v1/health
+      const response = await axios.get('/users/api/v1/health', {
+        timeout: 5000
+      });
+      console.log('✅ API connection test passed:', response.status);
+      return true;
+    } catch (error: any) {
+      console.error('❌ API connection test failed:', {
+        message: error.message,
+        status: error.response?.status,
+        url: error.config?.url
+      });
+      return false;
+    }
   },
   
-  // Register new user
+  login: async (email: string, password: string) => {
+    try {
+      console.log('🔐 Attempting login for:', email);
+      const response = await usersApi.post('/api/v1/auth/login', {
+        email: email.trim().toLowerCase(),
+        password
+      });
+      console.log('✅ Login successful');
+      return response.data;
+    } catch (error) {
+      console.error('❌ Login failed:', error);
+      throw error;
+    }
+  },
+  
   register: async (userData: {
     email: string;
     password: string;
     firstName: string;
     lastName: string;
   }) => {
-    const response = await usersApi.post('/auth/register', {
-      ...userData,
-      email: userData.email.trim().toLowerCase()
-    });
-    return response.data;
+    try {
+      console.log('🔐 Attempting registration for:', userData.email);
+      const response = await usersApi.post('/api/v1/auth/register', {
+        ...userData,
+        email: userData.email.trim().toLowerCase()
+      });
+      console.log('✅ Registration successful');
+      return response.data;
+    } catch (error) {
+      console.error('❌ Registration failed:', error);
+      throw error;
+    }
   },
   
-  // OAuth login
-  oauthLogin: async (provider: 'google' | 'facebook', code: string, redirectUri?: string) => {
-    const response = await usersApi.post(`/auth/oauth/${provider}`, {
-      code,
-      redirectUri
-    });
-    return response.data;
-  },
-  
-  // Get current user profile
   getCurrentUserProfile: async () => {
-    const response = await usersApi.get('/profile');
-    return response.data;
+    try {
+      const response = await usersApi.get('/api/v1/profile');
+      return response.data;
+    } catch (error) {
+      console.error('❌ Failed to get user profile:', error);
+      throw error;
+    }
   },
   
-  // Update user profile
-  updateProfile: async (profileData: any) => {
-    const response = await usersApi.put('/profile', profileData);
-    return response.data;
-  },
-  
-  // Logout
   logout: async () => {
     try {
-      await usersApi.post('/auth/logout');
+      await usersApi.post('/api/v1/auth/logout');
+      console.log('✅ Logout API call successful');
     } catch (error) {
-      console.warn('Logout API call failed, clearing local tokens anyway');
+      console.warn('⚠️ Logout API call failed, clearing local tokens anyway');
     } finally {
       TokenManager.clearTokens();
+      console.log('🧹 Local tokens cleared');
       window.location.href = '/login';
     }
   },
   
-  // Validate email format
   validateEmail: (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   },
   
-  // Validate password strength
   validatePassword: (password: string): { isValid: boolean; errors: string[] } => {
     const errors: string[] = [];
     
