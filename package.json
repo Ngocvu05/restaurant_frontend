@@ -52,8 +52,43 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "build:dev": "set GENERATE_SOURCEMAP=true&& react-scripts build",
+    "build:prod": "set GENERATE_SOURCEMAP=false&& react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "analyze": "npm run build && npx serve -s build",
+    
+    "docker:dev": "dev-scripts.bat start",
+    "docker:stop": "dev-scripts.bat stop",
+    "docker:restart": "dev-scripts.bat restart",
+    "docker:logs": "dev-scripts.bat logs",
+    "docker:logs:frontend": "dev-scripts.bat logs frontend",
+    "docker:status": "dev-scripts.bat status",
+    "docker:clean": "dev-scripts.bat clean",
+    "docker:exec": "dev-scripts.bat exec bash",
+    "docker:nginx:config": "dev-scripts.bat nginx-config",
+    "docker:nginx:test": "dev-scripts.bat nginx-test",
+    "docker:nginx:reload": "dev-scripts.bat nginx-reload",
+    
+    "dev:setup": "powershell -ExecutionPolicy Bypass -File setup-windows.ps1",
+    "dev:setup:manual": "if not exist logs\\nginx mkdir logs\\nginx && docker network create microservices-network",
+    "dev:build": "docker-compose -f docker-compose.dev.yml build",
+    "dev:up": "docker-compose -f docker-compose.dev.yml up -d",
+    "dev:down": "docker-compose -f docker-compose.dev.yml down",
+    "dev:ps": "docker-compose -f docker-compose.dev.yml ps",
+    
+    "prod:build": "docker-compose -f docker-compose.yml build",
+    "prod:up": "docker-compose -f docker-compose.yml up -d",
+    "prod:down": "docker-compose -f docker-compose.yml down",
+    "prod:ps": "docker-compose -f docker-compose.yml ps",
+    
+    "test:docker": "curl -f http://localhost:3000/health",
+    "test:api": "curl -f http://localhost:3000/api/health",
+    
+    "lint": "eslint src --ext .js,.jsx,.ts,.tsx",
+    "lint:fix": "eslint src --ext .js,.jsx,.ts,.tsx --fix",
+    "format": "prettier --write src/**/*.{js,jsx,ts,tsx,json,css,md}",
+    "type-check": "tsc --noEmit"
   },
   "eslintConfig": {
     "extends": [
@@ -89,6 +124,7 @@
     "postcss": "^8.5.6",
     "react-datepicker": "8.4.0",
     "react-tooltip": "^5.29.1",
-    "tailwindcss": "^4.1.10"
+    "tailwindcss": "^4.1.10",
+    "prettier": "^3.0.0"
   }
 }

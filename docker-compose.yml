@@ -7,29 +7,35 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: Dockerfile
-    image: restaurant-frontend:latest
-    container_name: restaurant-frontend
+      dockerfile: Dockerfile.dev
+      args:
+        - NODE_ENV=development
+    image: restaurant-frontend:dev
+    container_name: restaurant-frontend-dev
     ports:
-      - "80:80"
-      - "443:443"
+      - "3000:80"    # Only HTTP port for development
     restart: unless-stopped
     networks:
       - microservices-network
     environment:
+      - NODE_ENV=development
       - API_GATEWAY_HOST=api-gateway
       - API_GATEWAY_PORT=8080
       - SERVER_NAME=localhost
-      # WebSocket configuration
-      - WEBSOCKET_URL=ws://api-gateway:8080/ws
+      # Dev specific
+      - NGINX_DEBUG=1
+      - LOG_LEVEL=debug
     volumes:
       - ./logs/nginx:/var/log/nginx
+      # Mount nginx config (single file approach)
+      - ./default.conf:/etc/nginx/conf.d/default.conf:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
-    # Xóa external_links vì không cần thiết khi dùng chung network
-    # external_links không hoạt động tốt với custom networks
-    depends_on: []  # Không cần depends_on vì frontend chỉ proxy requests
+      start_period: 40s
+    depends_on: []
+    # Wait for backend to be ready (optional)
+    # depends_on:
+    #   - api-gateway
