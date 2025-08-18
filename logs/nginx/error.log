@@ -3241,3 +3241,450 @@
 2025/08/18 04:17:24 [error] 22#22: *67 access forbidden by rule, client: 172.28.0.1, server: localhost, request: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1", host: "localhost:3000"
 2025/08/18 04:19:45 [error] 23#23: *75 access forbidden by rule, client: 172.28.0.1, server: localhost, request: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1", host: "localhost:3000"
 2025/08/18 04:20:40 [error] 23#23: *78 access forbidden by rule, client: 172.28.0.1, server: localhost, request: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1", host: "localhost:3000"
+2025/08/18 04:24:42 [notice] 1#1: signal 3 (SIGQUIT) received, shutting down
+2025/08/18 04:24:42 [notice] 21#21: gracefully shutting down
+2025/08/18 04:24:42 [notice] 22#22: gracefully shutting down
+2025/08/18 04:24:42 [notice] 23#23: gracefully shutting down
+2025/08/18 04:24:42 [notice] 24#24: gracefully shutting down
+2025/08/18 04:24:42 [notice] 27#27: gracefully shutting down
+2025/08/18 04:24:42 [notice] 26#26: gracefully shutting down
+2025/08/18 04:24:42 [notice] 28#28: gracefully shutting down
+2025/08/18 04:24:42 [notice] 24#24: exiting
+2025/08/18 04:24:42 [notice] 29#29: gracefully shutting down
+2025/08/18 04:24:42 [notice] 32#32: gracefully shutting down
+2025/08/18 04:24:42 [notice] 33#33: gracefully shutting down
+2025/08/18 04:24:42 [notice] 21#21: exiting
+2025/08/18 04:24:42 [notice] 37#37: gracefully shutting down
+2025/08/18 04:24:42 [notice] 35#35: gracefully shutting down
+2025/08/18 04:24:42 [notice] 36#36: gracefully shutting down
+2025/08/18 04:24:42 [notice] 34#34: gracefully shutting down
+2025/08/18 04:24:42 [notice] 25#25: gracefully shutting down
+2025/08/18 04:24:42 [notice] 38#38: gracefully shutting down
+2025/08/18 04:24:42 [notice] 31#31: gracefully shutting down
+2025/08/18 04:24:42 [notice] 30#30: gracefully shutting down
+2025/08/18 04:24:42 [notice] 22#22: exiting
+2025/08/18 04:24:42 [notice] 23#23: exiting
+2025/08/18 04:24:42 [notice] 27#27: exiting
+2025/08/18 04:24:42 [notice] 28#28: exiting
+2025/08/18 04:24:42 [notice] 32#32: exiting
+2025/08/18 04:24:42 [notice] 24#24: exit
+2025/08/18 04:24:42 [notice] 26#26: exiting
+2025/08/18 04:24:42 [notice] 29#29: exiting
+2025/08/18 04:24:42 [notice] 21#21: exit
+2025/08/18 04:24:42 [notice] 33#33: exiting
+2025/08/18 04:24:42 [notice] 37#37: exiting
+2025/08/18 04:24:42 [notice] 35#35: exiting
+2025/08/18 04:24:42 [notice] 34#34: exiting
+2025/08/18 04:24:42 [notice] 36#36: exiting
+2025/08/18 04:24:42 [notice] 35#35: exit
+2025/08/18 04:24:42 [notice] 25#25: exiting
+2025/08/18 04:24:42 [notice] 31#31: exiting
+2025/08/18 04:24:42 [notice] 38#38: exiting
+2025/08/18 04:24:42 [notice] 22#22: exit
+2025/08/18 04:24:42 [notice] 30#30: exiting
+2025/08/18 04:24:42 [notice] 23#23: exit
+2025/08/18 04:24:42 [notice] 27#27: exit
+2025/08/18 04:24:42 [notice] 30#30: exit
+2025/08/18 04:24:42 [notice] 28#28: exit
+2025/08/18 04:24:42 [notice] 32#32: exit
+2025/08/18 04:24:42 [notice] 26#26: exit
+2025/08/18 04:24:42 [notice] 29#29: exit
+2025/08/18 04:24:42 [notice] 33#33: exit
+2025/08/18 04:24:42 [notice] 37#37: exit
+2025/08/18 04:24:42 [notice] 34#34: exit
+2025/08/18 04:24:42 [notice] 36#36: exit
+2025/08/18 04:24:42 [notice] 25#25: exit
+2025/08/18 04:24:42 [notice] 31#31: exit
+2025/08/18 04:24:42 [notice] 38#38: exit
+2025/08/18 04:24:42 [notice] 1#1: signal 17 (SIGCHLD) received from 23
+2025/08/18 04:24:42 [notice] 1#1: worker process 23 exited with code 0
+2025/08/18 04:24:42 [notice] 1#1: signal 29 (SIGIO) received
+2025/08/18 04:24:42 [notice] 1#1: signal 17 (SIGCHLD) received from 27
+2025/08/18 04:24:42 [notice] 1#1: worker process 27 exited with code 0
+2025/08/18 04:24:42 [notice] 1#1: signal 29 (SIGIO) received
+2025/08/18 04:24:42 [notice] 1#1: signal 17 (SIGCHLD) received from 38
+2025/08/18 04:24:42 [notice] 1#1: worker process 21 exited with code 0
+2025/08/18 04:24:42 [notice] 1#1: worker process 24 exited with code 0
+2025/08/18 04:24:42 [notice] 1#1: worker process 26 exited with code 0
+2025/08/18 04:24:42 [notice] 1#1: worker process 29 exited with code 0
+2025/08/18 04:24:42 [notice] 1#1: worker process 35 exited with code 0
+2025/08/18 04:24:42 [notice] 1#1: worker process 37 exited with code 0
+2025/08/18 04:24:42 [notice] 1#1: worker process 38 exited with code 0
+2025/08/18 04:24:42 [notice] 1#1: signal 29 (SIGIO) received
+2025/08/18 04:24:42 [notice] 1#1: signal 17 (SIGCHLD) received from 29
+2025/08/18 04:24:42 [notice] 1#1: signal 17 (SIGCHLD) received from 31
+2025/08/18 04:24:42 [notice] 1#1: worker process 22 exited with code 0
+2025/08/18 04:24:42 [notice] 1#1: worker process 30 exited with code 0
+2025/08/18 04:24:42 [notice] 1#1: worker process 31 exited with code 0
+2025/08/18 04:24:42 [notice] 1#1: worker process 32 exited with code 0
+2025/08/18 04:24:42 [notice] 1#1: worker process 33 exited with code 0
+2025/08/18 04:24:42 [notice] 1#1: worker process 34 exited with code 0
+2025/08/18 04:24:42 [notice] 1#1: signal 29 (SIGIO) received
+2025/08/18 04:24:42 [notice] 1#1: signal 17 (SIGCHLD) received from 30
+2025/08/18 04:24:42 [notice] 1#1: signal 17 (SIGCHLD) received from 36
+2025/08/18 04:24:42 [notice] 1#1: worker process 28 exited with code 0
+2025/08/18 04:24:42 [notice] 1#1: worker process 36 exited with code 0
+2025/08/18 04:24:42 [notice] 1#1: signal 29 (SIGIO) received
+2025/08/18 04:24:42 [notice] 1#1: signal 17 (SIGCHLD) received from 25
+2025/08/18 04:24:42 [notice] 1#1: worker process 25 exited with code 0
+2025/08/18 04:24:42 [notice] 1#1: exit
+2025/08/18 07:00:11 [notice] 1#1: using the "epoll" event method
+2025/08/18 07:00:11 [notice] 1#1: nginx/1.29.1
+2025/08/18 07:00:11 [notice] 1#1: built by gcc 14.2.0 (Alpine 14.2.0) 
+2025/08/18 07:00:11 [notice] 1#1: OS: Linux 6.6.87.2-microsoft-standard-WSL2
+2025/08/18 07:00:11 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+2025/08/18 07:00:11 [notice] 1#1: start worker processes
+2025/08/18 07:00:11 [notice] 1#1: start worker process 21
+2025/08/18 07:00:11 [notice] 1#1: start worker process 22
+2025/08/18 07:00:11 [notice] 1#1: start worker process 23
+2025/08/18 07:00:11 [notice] 1#1: start worker process 24
+2025/08/18 07:00:11 [notice] 1#1: start worker process 25
+2025/08/18 07:00:11 [notice] 1#1: start worker process 26
+2025/08/18 07:00:11 [notice] 1#1: start worker process 27
+2025/08/18 07:00:11 [notice] 1#1: start worker process 28
+2025/08/18 07:00:11 [notice] 1#1: start worker process 29
+2025/08/18 07:00:11 [notice] 1#1: start worker process 30
+2025/08/18 07:00:11 [notice] 1#1: start worker process 31
+2025/08/18 07:00:11 [notice] 1#1: start worker process 32
+2025/08/18 07:00:11 [notice] 1#1: start worker process 33
+2025/08/18 07:00:11 [notice] 1#1: start worker process 34
+2025/08/18 07:00:11 [notice] 1#1: start worker process 35
+2025/08/18 07:00:11 [notice] 1#1: start worker process 36
+2025/08/18 07:00:11 [notice] 1#1: start worker process 37
+2025/08/18 07:00:11 [notice] 1#1: start worker process 38
+2025/08/18 07:00:28 [error] 28#28: *10 access forbidden by rule, client: 172.28.0.1, server: localhost, request: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1", host: "localhost:3000"
+2025/08/18 07:07:38 [error] 22#22: *34 access forbidden by rule, client: 172.28.0.1, server: localhost, request: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1", host: "localhost:3000"
+2025/08/18 07:12:50 [error] 23#23: *53 access forbidden by rule, client: 172.28.0.1, server: localhost, request: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1", host: "localhost:3000"
+2025/08/18 07:17:52 [error] 21#21: *65 access forbidden by rule, client: 172.28.0.1, server: localhost, request: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1", host: "localhost:3000"
+2025/08/18 07:19:58 [notice] 1#1: signal 3 (SIGQUIT) received, shutting down
+2025/08/18 07:19:58 [notice] 21#21: gracefully shutting down
+2025/08/18 07:19:58 [notice] 23#23: gracefully shutting down
+2025/08/18 07:19:58 [notice] 22#22: gracefully shutting down
+2025/08/18 07:19:58 [notice] 27#27: gracefully shutting down
+2025/08/18 07:19:58 [notice] 26#26: gracefully shutting down
+2025/08/18 07:19:58 [notice] 25#25: gracefully shutting down
+2025/08/18 07:19:58 [notice] 30#30: gracefully shutting down
+2025/08/18 07:19:58 [notice] 28#28: gracefully shutting down
+2025/08/18 07:19:58 [notice] 32#32: gracefully shutting down
+2025/08/18 07:19:58 [notice] 29#29: gracefully shutting down
+2025/08/18 07:19:58 [notice] 36#36: gracefully shutting down
+2025/08/18 07:19:58 [notice] 37#37: gracefully shutting down
+2025/08/18 07:19:58 [notice] 38#38: gracefully shutting down
+2025/08/18 07:19:58 [notice] 34#34: gracefully shutting down
+2025/08/18 07:19:58 [notice] 24#24: gracefully shutting down
+2025/08/18 07:19:58 [notice] 31#31: gracefully shutting down
+2025/08/18 07:19:58 [notice] 28#28: exiting
+2025/08/18 07:19:58 [notice] 33#33: gracefully shutting down
+2025/08/18 07:19:58 [notice] 35#35: gracefully shutting down
+2025/08/18 07:19:58 [notice] 21#21: exiting
+2025/08/18 07:19:58 [notice] 22#22: exiting
+2025/08/18 07:19:58 [notice] 23#23: exiting
+2025/08/18 07:19:58 [notice] 25#25: exiting
+2025/08/18 07:19:58 [notice] 27#27: exiting
+2025/08/18 07:19:58 [notice] 30#30: exiting
+2025/08/18 07:19:58 [notice] 32#32: exiting
+2025/08/18 07:19:58 [notice] 26#26: exiting
+2025/08/18 07:19:58 [notice] 37#37: exiting
+2025/08/18 07:19:58 [notice] 36#36: exiting
+2025/08/18 07:19:58 [notice] 29#29: exiting
+2025/08/18 07:19:58 [notice] 38#38: exiting
+2025/08/18 07:19:58 [notice] 24#24: exiting
+2025/08/18 07:19:58 [notice] 31#31: exiting
+2025/08/18 07:19:58 [notice] 34#34: exiting
+2025/08/18 07:19:58 [notice] 33#33: exiting
+2025/08/18 07:19:58 [notice] 35#35: exiting
+2025/08/18 07:19:58 [notice] 28#28: exit
+2025/08/18 07:19:58 [notice] 31#31: exit
+2025/08/18 07:19:58 [notice] 21#21: exit
+2025/08/18 07:19:58 [notice] 23#23: exit
+2025/08/18 07:19:58 [notice] 22#22: exit
+2025/08/18 07:19:58 [notice] 37#37: exit
+2025/08/18 07:19:58 [notice] 36#36: exit
+2025/08/18 07:19:58 [notice] 32#32: exit
+2025/08/18 07:19:58 [notice] 30#30: exit
+2025/08/18 07:19:58 [notice] 27#27: exit
+2025/08/18 07:19:58 [notice] 25#25: exit
+2025/08/18 07:19:58 [notice] 26#26: exit
+2025/08/18 07:19:58 [notice] 38#38: exit
+2025/08/18 07:19:58 [notice] 29#29: exit
+2025/08/18 07:19:58 [notice] 24#24: exit
+2025/08/18 07:19:58 [notice] 34#34: exit
+2025/08/18 07:19:58 [notice] 35#35: exit
+2025/08/18 07:19:58 [notice] 33#33: exit
+2025/08/18 07:19:58 [notice] 1#1: signal 17 (SIGCHLD) received from 33
+2025/08/18 07:19:58 [notice] 1#1: worker process 33 exited with code 0
+2025/08/18 07:19:58 [notice] 1#1: signal 29 (SIGIO) received
+2025/08/18 07:19:58 [notice] 1#1: signal 17 (SIGCHLD) received from 23
+2025/08/18 07:19:58 [notice] 1#1: worker process 21 exited with code 0
+2025/08/18 07:19:58 [notice] 1#1: worker process 22 exited with code 0
+2025/08/18 07:19:58 [notice] 1#1: worker process 23 exited with code 0
+2025/08/18 07:19:58 [notice] 1#1: worker process 24 exited with code 0
+2025/08/18 07:19:58 [notice] 1#1: worker process 25 exited with code 0
+2025/08/18 07:19:58 [notice] 1#1: worker process 27 exited with code 0
+2025/08/18 07:19:58 [notice] 1#1: worker process 28 exited with code 0
+2025/08/18 07:19:58 [notice] 1#1: worker process 30 exited with code 0
+2025/08/18 07:19:58 [notice] 1#1: worker process 32 exited with code 0
+2025/08/18 07:19:58 [notice] 1#1: worker process 34 exited with code 0
+2025/08/18 07:19:58 [notice] 1#1: worker process 26 exited with code 0
+2025/08/18 07:19:58 [notice] 1#1: worker process 36 exited with code 0
+2025/08/18 07:19:58 [notice] 1#1: worker process 38 exited with code 0
+2025/08/18 07:19:58 [notice] 1#1: signal 29 (SIGIO) received
+2025/08/18 07:19:58 [notice] 1#1: signal 17 (SIGCHLD) received from 27
+2025/08/18 07:19:58 [notice] 1#1: signal 17 (SIGCHLD) received from 37
+2025/08/18 07:19:58 [notice] 1#1: worker process 29 exited with code 0
+2025/08/18 07:19:58 [notice] 1#1: worker process 35 exited with code 0
+2025/08/18 07:19:58 [notice] 1#1: worker process 31 exited with code 0
+2025/08/18 07:19:58 [notice] 1#1: worker process 37 exited with code 0
+2025/08/18 07:19:58 [notice] 1#1: exit
+2025/08/18 07:19:59 [notice] 1#1: using the "epoll" event method
+2025/08/18 07:19:59 [notice] 1#1: nginx/1.29.1
+2025/08/18 07:19:59 [notice] 1#1: built by gcc 14.2.0 (Alpine 14.2.0) 
+2025/08/18 07:19:59 [notice] 1#1: OS: Linux 6.6.87.2-microsoft-standard-WSL2
+2025/08/18 07:19:59 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+2025/08/18 07:19:59 [notice] 1#1: start worker processes
+2025/08/18 07:19:59 [notice] 1#1: start worker process 21
+2025/08/18 07:19:59 [notice] 1#1: start worker process 22
+2025/08/18 07:19:59 [notice] 1#1: start worker process 23
+2025/08/18 07:19:59 [notice] 1#1: start worker process 24
+2025/08/18 07:19:59 [notice] 1#1: start worker process 25
+2025/08/18 07:19:59 [notice] 1#1: start worker process 26
+2025/08/18 07:19:59 [notice] 1#1: start worker process 27
+2025/08/18 07:19:59 [notice] 1#1: start worker process 28
+2025/08/18 07:19:59 [notice] 1#1: start worker process 29
+2025/08/18 07:19:59 [notice] 1#1: start worker process 30
+2025/08/18 07:19:59 [notice] 1#1: start worker process 31
+2025/08/18 07:19:59 [notice] 1#1: start worker process 32
+2025/08/18 07:19:59 [notice] 1#1: start worker process 33
+2025/08/18 07:19:59 [notice] 1#1: start worker process 34
+2025/08/18 07:19:59 [notice] 1#1: start worker process 35
+2025/08/18 07:19:59 [notice] 1#1: start worker process 36
+2025/08/18 07:19:59 [notice] 1#1: start worker process 37
+2025/08/18 07:19:59 [notice] 1#1: start worker process 38
+2025/08/18 07:20:18 [error] 25#25: *8 access forbidden by rule, client: 172.28.0.1, server: localhost, request: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1", host: "localhost:3000"
+2025/08/18 07:20:31 [notice] 1#1: signal 3 (SIGQUIT) received, shutting down
+2025/08/18 07:20:31 [notice] 21#21: gracefully shutting down
+2025/08/18 07:20:31 [notice] 23#23: gracefully shutting down
+2025/08/18 07:20:31 [notice] 25#25: gracefully shutting down
+2025/08/18 07:20:31 [notice] 24#24: gracefully shutting down
+2025/08/18 07:20:31 [notice] 22#22: gracefully shutting down
+2025/08/18 07:20:31 [notice] 28#28: gracefully shutting down
+2025/08/18 07:20:31 [notice] 26#26: gracefully shutting down
+2025/08/18 07:20:31 [notice] 30#30: gracefully shutting down
+2025/08/18 07:20:31 [notice] 27#27: gracefully shutting down
+2025/08/18 07:20:31 [notice] 32#32: gracefully shutting down
+2025/08/18 07:20:31 [notice] 31#31: gracefully shutting down
+2025/08/18 07:20:31 [notice] 33#33: gracefully shutting down
+2025/08/18 07:20:31 [notice] 29#29: gracefully shutting down
+2025/08/18 07:20:31 [notice] 35#35: gracefully shutting down
+2025/08/18 07:20:31 [notice] 38#38: gracefully shutting down
+2025/08/18 07:20:31 [notice] 35#35: exiting
+2025/08/18 07:20:31 [notice] 37#37: gracefully shutting down
+2025/08/18 07:20:31 [notice] 34#34: gracefully shutting down
+2025/08/18 07:20:31 [notice] 36#36: gracefully shutting down
+2025/08/18 07:20:31 [notice] 21#21: exiting
+2025/08/18 07:20:31 [notice] 23#23: exiting
+2025/08/18 07:20:31 [notice] 21#21: exit
+2025/08/18 07:20:31 [notice] 25#25: exiting
+2025/08/18 07:20:31 [notice] 24#24: exiting
+2025/08/18 07:20:31 [notice] 22#22: exiting
+2025/08/18 07:20:31 [notice] 24#24: exit
+2025/08/18 07:20:31 [notice] 28#28: exiting
+2025/08/18 07:20:31 [notice] 26#26: exiting
+2025/08/18 07:20:31 [notice] 30#30: exiting
+2025/08/18 07:20:31 [notice] 27#27: exiting
+2025/08/18 07:20:31 [notice] 32#32: exiting
+2025/08/18 07:20:31 [notice] 31#31: exiting
+2025/08/18 07:20:31 [notice] 33#33: exiting
+2025/08/18 07:20:31 [notice] 29#29: exiting
+2025/08/18 07:20:31 [notice] 33#33: exit
+2025/08/18 07:20:31 [notice] 38#38: exiting
+2025/08/18 07:20:31 [notice] 35#35: exit
+2025/08/18 07:20:31 [notice] 37#37: exiting
+2025/08/18 07:20:31 [notice] 34#34: exiting
+2025/08/18 07:20:31 [notice] 36#36: exiting
+2025/08/18 07:20:31 [notice] 23#23: exit
+2025/08/18 07:20:31 [notice] 25#25: exit
+2025/08/18 07:20:31 [notice] 22#22: exit
+2025/08/18 07:20:31 [notice] 28#28: exit
+2025/08/18 07:20:31 [notice] 26#26: exit
+2025/08/18 07:20:31 [notice] 30#30: exit
+2025/08/18 07:20:31 [notice] 27#27: exit
+2025/08/18 07:20:31 [notice] 32#32: exit
+2025/08/18 07:20:31 [notice] 31#31: exit
+2025/08/18 07:20:31 [notice] 29#29: exit
+2025/08/18 07:20:31 [notice] 38#38: exit
+2025/08/18 07:20:31 [notice] 37#37: exit
+2025/08/18 07:20:31 [notice] 34#34: exit
+2025/08/18 07:20:31 [notice] 36#36: exit
+2025/08/18 07:20:31 [notice] 1#1: signal 17 (SIGCHLD) received from 30
+2025/08/18 07:20:31 [notice] 1#1: worker process 30 exited with code 0
+2025/08/18 07:20:31 [notice] 1#1: signal 29 (SIGIO) received
+2025/08/18 07:20:31 [notice] 1#1: signal 17 (SIGCHLD) received from 34
+2025/08/18 07:20:31 [notice] 1#1: worker process 34 exited with code 0
+2025/08/18 07:20:31 [notice] 1#1: worker process 35 exited with code 0
+2025/08/18 07:20:31 [notice] 1#1: signal 29 (SIGIO) received
+2025/08/18 07:20:31 [notice] 1#1: signal 17 (SIGCHLD) received from 23
+2025/08/18 07:20:31 [notice] 1#1: worker process 23 exited with code 0
+2025/08/18 07:20:31 [notice] 1#1: signal 29 (SIGIO) received
+2025/08/18 07:20:31 [notice] 1#1: signal 17 (SIGCHLD) received from 28
+2025/08/18 07:20:31 [notice] 1#1: worker process 22 exited with code 0
+2025/08/18 07:20:31 [notice] 1#1: worker process 28 exited with code 0
+2025/08/18 07:20:31 [notice] 1#1: worker process 32 exited with code 0
+2025/08/18 07:20:31 [notice] 1#1: worker process 37 exited with code 0
+2025/08/18 07:20:31 [notice] 1#1: signal 29 (SIGIO) received
+2025/08/18 07:20:31 [notice] 1#1: signal 17 (SIGCHLD) received from 32
+2025/08/18 07:20:31 [notice] 1#1: signal 17 (SIGCHLD) received from 25
+2025/08/18 07:20:31 [notice] 1#1: worker process 21 exited with code 0
+2025/08/18 07:20:31 [notice] 1#1: worker process 24 exited with code 0
+2025/08/18 07:20:31 [notice] 1#1: worker process 25 exited with code 0
+2025/08/18 07:20:31 [notice] 1#1: worker process 26 exited with code 0
+2025/08/18 07:20:31 [notice] 1#1: worker process 27 exited with code 0
+2025/08/18 07:20:31 [notice] 1#1: worker process 29 exited with code 0
+2025/08/18 07:20:31 [notice] 1#1: worker process 31 exited with code 0
+2025/08/18 07:20:31 [notice] 1#1: worker process 33 exited with code 0
+2025/08/18 07:20:31 [notice] 1#1: worker process 36 exited with code 0
+2025/08/18 07:20:31 [notice] 1#1: worker process 38 exited with code 0
+2025/08/18 07:20:31 [notice] 1#1: exit
+2025/08/18 07:21:50 [notice] 1#1: using the "epoll" event method
+2025/08/18 07:21:50 [notice] 1#1: nginx/1.29.1
+2025/08/18 07:21:50 [notice] 1#1: built by gcc 14.2.0 (Alpine 14.2.0) 
+2025/08/18 07:21:50 [notice] 1#1: OS: Linux 6.6.87.2-microsoft-standard-WSL2
+2025/08/18 07:21:50 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+2025/08/18 07:21:50 [notice] 1#1: start worker processes
+2025/08/18 07:21:50 [notice] 1#1: start worker process 21
+2025/08/18 07:21:50 [notice] 1#1: start worker process 22
+2025/08/18 07:21:50 [notice] 1#1: start worker process 23
+2025/08/18 07:21:50 [notice] 1#1: start worker process 24
+2025/08/18 07:21:50 [notice] 1#1: start worker process 25
+2025/08/18 07:21:50 [notice] 1#1: start worker process 26
+2025/08/18 07:21:50 [notice] 1#1: start worker process 27
+2025/08/18 07:21:50 [notice] 1#1: start worker process 28
+2025/08/18 07:21:50 [notice] 1#1: start worker process 29
+2025/08/18 07:21:50 [notice] 1#1: start worker process 30
+2025/08/18 07:21:50 [notice] 1#1: start worker process 31
+2025/08/18 07:21:50 [notice] 1#1: start worker process 32
+2025/08/18 07:21:50 [notice] 1#1: start worker process 33
+2025/08/18 07:21:50 [notice] 1#1: start worker process 34
+2025/08/18 07:21:50 [notice] 1#1: start worker process 35
+2025/08/18 07:21:50 [notice] 1#1: start worker process 36
+2025/08/18 07:21:50 [notice] 1#1: start worker process 37
+2025/08/18 07:21:50 [notice] 1#1: start worker process 38
+2025/08/18 07:21:52 [error] 22#22: *2 access forbidden by rule, client: 172.28.0.1, server: localhost, request: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1", host: "localhost:3000"
+2025/08/18 07:26:41 [notice] 1#1: signal 3 (SIGQUIT) received, shutting down
+2025/08/18 07:26:41 [notice] 21#21: gracefully shutting down
+2025/08/18 07:26:41 [notice] 22#22: gracefully shutting down
+2025/08/18 07:26:41 [notice] 23#23: gracefully shutting down
+2025/08/18 07:26:41 [notice] 24#24: gracefully shutting down
+2025/08/18 07:26:41 [notice] 38#38: gracefully shutting down
+2025/08/18 07:26:41 [notice] 26#26: gracefully shutting down
+2025/08/18 07:26:41 [notice] 27#27: gracefully shutting down
+2025/08/18 07:26:41 [notice] 28#28: gracefully shutting down
+2025/08/18 07:26:41 [notice] 25#25: gracefully shutting down
+2025/08/18 07:26:41 [notice] 29#29: gracefully shutting down
+2025/08/18 07:26:41 [notice] 25#25: exiting
+2025/08/18 07:26:41 [notice] 30#30: gracefully shutting down
+2025/08/18 07:26:41 [notice] 32#32: gracefully shutting down
+2025/08/18 07:26:41 [notice] 33#33: gracefully shutting down
+2025/08/18 07:26:41 [notice] 31#31: gracefully shutting down
+2025/08/18 07:26:41 [notice] 21#21: exiting
+2025/08/18 07:26:41 [notice] 34#34: gracefully shutting down
+2025/08/18 07:26:41 [notice] 22#22: exiting
+2025/08/18 07:26:41 [notice] 31#31: exiting
+2025/08/18 07:26:41 [notice] 37#37: gracefully shutting down
+2025/08/18 07:26:41 [notice] 34#34: exiting
+2025/08/18 07:26:41 [notice] 35#35: gracefully shutting down
+2025/08/18 07:26:41 [notice] 36#36: gracefully shutting down
+2025/08/18 07:26:41 [notice] 23#23: exiting
+2025/08/18 07:26:41 [notice] 35#35: exiting
+2025/08/18 07:26:41 [notice] 38#38: exiting
+2025/08/18 07:26:41 [notice] 24#24: exiting
+2025/08/18 07:26:41 [notice] 26#26: exiting
+2025/08/18 07:26:41 [notice] 24#24: exit
+2025/08/18 07:26:41 [notice] 27#27: exiting
+2025/08/18 07:26:41 [notice] 28#28: exiting
+2025/08/18 07:26:41 [notice] 29#29: exiting
+2025/08/18 07:26:41 [notice] 30#30: exiting
+2025/08/18 07:26:41 [notice] 25#25: exit
+2025/08/18 07:26:41 [notice] 32#32: exiting
+2025/08/18 07:26:41 [notice] 21#21: exit
+2025/08/18 07:26:41 [notice] 33#33: exiting
+2025/08/18 07:26:41 [notice] 31#31: exit
+2025/08/18 07:26:41 [notice] 22#22: exit
+2025/08/18 07:26:41 [notice] 34#34: exit
+2025/08/18 07:26:41 [notice] 37#37: exiting
+2025/08/18 07:26:41 [notice] 23#23: exit
+2025/08/18 07:26:41 [notice] 36#36: exiting
+2025/08/18 07:26:41 [notice] 35#35: exit
+2025/08/18 07:26:41 [notice] 36#36: exit
+2025/08/18 07:26:41 [notice] 38#38: exit
+2025/08/18 07:26:41 [notice] 26#26: exit
+2025/08/18 07:26:41 [notice] 27#27: exit
+2025/08/18 07:26:41 [notice] 28#28: exit
+2025/08/18 07:26:41 [notice] 29#29: exit
+2025/08/18 07:26:41 [notice] 30#30: exit
+2025/08/18 07:26:41 [notice] 32#32: exit
+2025/08/18 07:26:41 [notice] 33#33: exit
+2025/08/18 07:26:41 [notice] 37#37: exit
+2025/08/18 07:27:46 [notice] 1#1: using the "epoll" event method
+2025/08/18 07:27:46 [notice] 1#1: nginx/1.29.1
+2025/08/18 07:27:46 [notice] 1#1: built by gcc 14.2.0 (Alpine 14.2.0) 
+2025/08/18 07:27:46 [notice] 1#1: OS: Linux 6.6.87.2-microsoft-standard-WSL2
+2025/08/18 07:27:46 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+2025/08/18 07:27:46 [notice] 1#1: start worker processes
+2025/08/18 07:27:46 [notice] 1#1: start worker process 22
+2025/08/18 07:27:46 [notice] 1#1: start worker process 23
+2025/08/18 07:27:46 [notice] 1#1: start worker process 24
+2025/08/18 07:27:46 [notice] 1#1: start worker process 25
+2025/08/18 07:27:46 [notice] 1#1: start worker process 26
+2025/08/18 07:27:46 [notice] 1#1: start worker process 27
+2025/08/18 07:27:46 [notice] 1#1: start worker process 28
+2025/08/18 07:27:46 [notice] 1#1: start worker process 29
+2025/08/18 07:27:46 [notice] 1#1: start worker process 30
+2025/08/18 07:27:46 [notice] 1#1: start worker process 31
+2025/08/18 07:27:46 [notice] 1#1: start worker process 32
+2025/08/18 07:27:46 [notice] 1#1: start worker process 33
+2025/08/18 07:27:46 [notice] 1#1: start worker process 34
+2025/08/18 07:27:46 [notice] 1#1: start worker process 35
+2025/08/18 07:27:46 [notice] 1#1: start worker process 36
+2025/08/18 07:27:46 [notice] 1#1: start worker process 37
+2025/08/18 07:27:46 [notice] 1#1: start worker process 38
+2025/08/18 07:27:46 [notice] 1#1: start worker process 39
+2025/08/18 07:29:46 [error] 26#26: *5 access forbidden by rule, client: 172.28.0.1, server: localhost, request: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1", host: "localhost:3000"
+2025/08/18 07:30:54 [error] 28#28: *8 access forbidden by rule, client: 172.28.0.1, server: localhost, request: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1", host: "localhost:3000"
+2025/08/18 07:41:46 [error] 22#22: *42 access forbidden by rule, client: 172.28.0.1, server: localhost, request: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1", host: "localhost:3000"
+2025/08/18 07:46:48 [error] 22#22: *54 access forbidden by rule, client: 172.28.0.1, server: localhost, request: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1", host: "localhost:3000"
+2025/08/18 09:05:36 [notice] 1#1: using the "epoll" event method
+2025/08/18 09:05:36 [notice] 1#1: nginx/1.29.1
+2025/08/18 09:05:36 [notice] 1#1: built by gcc 14.2.0 (Alpine 14.2.0) 
+2025/08/18 09:05:36 [notice] 1#1: OS: Linux 6.6.87.2-microsoft-standard-WSL2
+2025/08/18 09:05:36 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+2025/08/18 09:05:36 [notice] 1#1: start worker processes
+2025/08/18 09:05:36 [notice] 1#1: start worker process 21
+2025/08/18 09:05:36 [notice] 1#1: start worker process 22
+2025/08/18 09:05:36 [notice] 1#1: start worker process 23
+2025/08/18 09:05:36 [notice] 1#1: start worker process 24
+2025/08/18 09:05:36 [notice] 1#1: start worker process 25
+2025/08/18 09:05:36 [notice] 1#1: start worker process 26
+2025/08/18 09:05:36 [notice] 1#1: start worker process 27
+2025/08/18 09:05:36 [notice] 1#1: start worker process 28
+2025/08/18 09:05:36 [notice] 1#1: start worker process 29
+2025/08/18 09:05:36 [notice] 1#1: start worker process 30
+2025/08/18 09:05:36 [notice] 1#1: start worker process 31
+2025/08/18 09:05:36 [notice] 1#1: start worker process 32
+2025/08/18 09:05:36 [notice] 1#1: start worker process 33
+2025/08/18 09:05:36 [notice] 1#1: start worker process 34
+2025/08/18 09:05:36 [notice] 1#1: start worker process 35
+2025/08/18 09:05:36 [notice] 1#1: start worker process 36
+2025/08/18 09:05:36 [notice] 1#1: start worker process 37
+2025/08/18 09:05:36 [notice] 1#1: start worker process 38
+2025/08/18 09:05:56 [error] 21#21: *4 access forbidden by rule, client: 172.28.0.1, server: localhost, request: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1", host: "localhost:3000"
+2025/08/18 09:06:27 [error] 30#30: *18 access forbidden by rule, client: 172.28.0.1, server: localhost, request: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1", host: "localhost:3000"
+2025/08/18 09:18:53 [error] 23#23: *62 access forbidden by rule, client: 172.28.0.1, server: localhost, request: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1", host: "localhost:3000"
+2025/08/18 09:18:55 [error] 23#23: *62 access forbidden by rule, client: 172.28.0.1, server: localhost, request: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1", host: "localhost:3000"
+2025/08/18 09:25:50 [error] 21#21: *81 access forbidden by rule, client: 172.28.0.1, server: localhost, request: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1", host: "localhost:3000"
+2025/08/18 09:30:52 [error] 24#24: *93 access forbidden by rule, client: 172.28.0.1, server: localhost, request: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1", host: "localhost:3000"
+2025/08/18 09:35:54 [error] 25#25: *105 access forbidden by rule, client: 172.28.0.1, server: localhost, request: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1", host: "localhost:3000"
+2025/08/18 09:40:57 [error] 26#26: *117 access forbidden by rule, client: 172.28.0.1, server: localhost, request: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1", host: "localhost:3000"
+2025/08/18 09:41:49 [error] 26#26: *124 access forbidden by rule, client: 172.28.0.1, server: localhost, request: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1", host: "localhost:3000"
+2025/08/18 09:47:30 [error] 27#27: *140 access forbidden by rule, client: 172.28.0.1, server: localhost, request: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1", host: "localhost:3000"
+2025/08/18 09:47:54 [error] 27#27: *143 access forbidden by rule, client: 172.28.0.1, server: localhost, request: "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1", host: "localhost:3000"

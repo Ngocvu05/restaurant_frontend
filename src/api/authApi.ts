@@ -31,7 +31,7 @@ export interface RegisterRequest {
 }
 
 class AuthApiService {
-  private readonly baseUrl = '/api/v1/auth';
+  private readonly baseUrl = '/auth';
 
   /**
    * Register new user

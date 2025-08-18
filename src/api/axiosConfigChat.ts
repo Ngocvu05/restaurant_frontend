@@ -1,84 +1,146 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { TokenManager, apiUtils } from './axiosApiConfig';
 
-// Extend AxiosRequestConfig để thêm _retry property
 interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
 }
 
 /**
- * Instance cho Chat API
- * Sử dụng same-origin pattern như axiosApiConfig
- * Nginx proxy: /api/chat -> api-gateway:8080/chat
+ * Instance cho Chat Service
+ * 
+ * Routing flow:
+ * Frontend: localhost:3000/chat/api/v1/*
+ * -> Nginx proxy: /chat/*
+ * -> API Gateway: /chat/** (StripPrefix=1) 
+ * -> Chat Service: /api/v1/*
+ * 
+ * Chat service thường cần authentication cho hầu hết endpoints
  */
 export const chatApi = axios.create({
-  baseURL: '/api/chat/api/v1',
+  baseURL: '/chat',  // Match với nginx proxy và gateway routing
   withCredentials: true,
-  timeout: 30000,
+  timeout: 30000,  // Chat có thể cần timeout cao hơn cho long polling
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
 });
 
-// Request interceptor: set token vào header
+/**
+ * Define public endpoints for chat service (ít endpoints public)
+ */
+const PUBLIC_CHAT_ENDPOINTS = [
+  '/health',
+  '/api/v1/public',
+  '/chat/ws',
+  '/chat/ws/**',
+  '/chat/api/v1/guest',
+  '/chat/api/v1/guest/**'
+];
+
+/**
+ * Check if chat endpoint is public
+ */
+function isPublicChatEndpoint(url?: string): boolean {
+  if (!url) return false;
+  return PUBLIC_CHAT_ENDPOINTS.some(endpoint => url.includes(endpoint));
+}
+
+/**
+ * Request interceptor cho Chat API
+ */
 chatApi.interceptors.request.use(
   (config) => {
-    const token = TokenManager.getAccessToken();
-    
-    if (token && !TokenManager.isTokenExpired(token)) {
-      config.headers = config.headers ?? {};
-      config.headers.Authorization = `Bearer ${token}`;
+    const isPublic = isPublicChatEndpoint(config.url);
+
+    // Add authentication cho non-public endpoints
+    if (!isPublic) {
+      const token = TokenManager.getAccessToken();
+      if (token && !TokenManager.isTokenExpired(token)) {
+        config.headers = config.headers ?? {};
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     
-    // Thêm request metadata cho chat
+    // Add chat-specific headers
     config.headers = config.headers ?? {};
-    config.headers['X-Chat-Client'] = 'web';
+    config.headers['X-Service'] = 'chat-service';
+    config.headers['X-Client-Type'] = 'web';
+    config.headers['X-Chat-Client'] = 'react-web';
     config.headers['X-Request-ID'] = `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
-    // Log chat API requests trong development
+    // Add user context if available
+    const currentUser = apiUtils.getCurrentUser();
+    if (currentUser && !isPublic) {
+      config.headers['X-User-ID'] = currentUser.id;
+      if (currentUser.username) {
+        config.headers['X-Username'] = currentUser.username;
+      }
+    }
+    
+    // Development logging
     if (process.env.NODE_ENV === 'development') {
-      console.log(`Chat API Request [${config.method?.toUpperCase()}] ${config.url}`);
+      console.log(`💬 Chat API Request [${config.method?.toUpperCase()}] ${config.url}`, {
+        baseURL: config.baseURL,
+        fullURL: `${config.baseURL}${config.url}`,
+        isPublic,
+        hasAuth: !!config.headers.Authorization,
+        userId: config.headers['X-User-ID']
+      });
     }
     
     return config;
   },
   (error) => {
-    console.error('Chat API request interceptor error:', error);
+    console.error('❌ Chat API request interceptor error:', error);
     return Promise.reject(error);
   }
 );
 
-// Response interceptor: handle errors globally với refresh token
+/**
+ * Response interceptor cho Chat API
+ */
 chatApi.interceptors.response.use(
   (response) => {
-    // Log successful chat responses trong development
     if (process.env.NODE_ENV === 'development') {
-      console.log(`Chat API Response [${response.config.method?.toUpperCase()}] ${response.config.url}:`, response.status);
+      console.log(`✅ Chat API Response [${response.config.method?.toUpperCase()}] ${response.config.url}:`, {
+        status: response.status,
+        hasData: !!response.data,
+        dataType: typeof response.data
+      });
     }
+
     return response;
   },
   async (error: AxiosError) => {
     const originalRequest = error.config as ExtendedAxiosRequestConfig;
 
-    // Log chat API errors
-    console.error('Chat API Error:', {
+    // Enhanced error logging cho Chat API
+    console.error('❌ Chat API Error:', {
       url: originalRequest?.url,
+      fullURL: `${originalRequest?.baseURL}${originalRequest?.url}`,
       method: originalRequest?.method,
       status: error.response?.status,
-      message: error.message
+      statusText: error.response?.statusText,
+      message: error.message,
+      responseData: error.response?.data
     });
 
-    // Xử lý 401 với refresh token
-    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+    // Handle 401 với refresh token logic
+    if (error.response?.status === 401 && 
+        originalRequest && 
+        !originalRequest._retry &&
+        !isPublicChatEndpoint(originalRequest.url)) {
+      
       originalRequest._retry = true;
-
       const refreshToken = TokenManager.getRefreshToken();
       
       if (refreshToken && !TokenManager.isTokenExpired(refreshToken)) {
         try {
-          // Gọi refresh token endpoint thông qua users API
-          const refreshResponse = await axios.post('/api/users/api/auth/refresh-token', {
+          console.log('🔄 Chat API attempting token refresh...');
+          
+          // Call refresh token endpoint through users service
+          const refreshResponse = await axios.post('/users/api/v1/auth/refresh-token', {
             refreshToken: refreshToken
           }, {
             withCredentials: true,
@@ -91,73 +153,93 @@ chatApi.interceptors.response.use(
           const { token: newToken, refreshToken: newRefreshToken } = refreshResponse.data;
 
           if (newToken) {
-            // Cập nhật tokens sử dụng TokenManager
             TokenManager.setTokens(newToken, newRefreshToken);
-
-            // Retry original request với token mới
             originalRequest.headers = originalRequest.headers ?? {};
             originalRequest.headers.Authorization = `Bearer ${newToken}`;
             
+            console.log('✅ Chat API token refreshed, retrying request');
             return chatApi(originalRequest);
           }
-        } catch (refreshError) {
-          console.error('Chat API token refresh failed:', refreshError);
-          // Refresh token thất bại - clear storage và redirect
+        } catch (refreshError: any) {
+          console.error('❌ Chat API token refresh failed:', refreshError);
           TokenManager.clearTokens();
-          redirectToLogin('Chat session expired');
+          redirectToChatLogin('Chat session expired');
           return Promise.reject(refreshError);
         }
       } else {
-        // Không có refresh token hoặc đã expired - redirect login
+        console.log('🚫 No valid refresh token for Chat API');
         TokenManager.clearTokens();
-        redirectToLogin('Authentication required for chat');
+        redirectToChatLogin('Authentication required for chat');
       }
     }
 
     // Handle chat-specific errors
     handleChatErrors(error);
-
     return Promise.reject(error);
   }
 );
 
 /**
- * Handle chat-specific errors
+ * Handle chat service specific errors
  */
 function handleChatErrors(error: AxiosError) {
   const status = error.response?.status;
   const data = error.response?.data as any;
   
   switch (status) {
+    case 400:
+      if (data?.message?.includes('message')) {
+        console.warn('⚠️ Invalid message format or content');
+      } else if (data?.message?.includes('room') || data?.message?.includes('conversation')) {
+        console.warn('⚠️ Invalid chat room or conversation ID');
+      } else {
+        console.warn('⚠️ Bad request - check chat data format');
+      }
+      break;
     case 403:
-      console.warn('Chat access forbidden - may need to join conversation first');
+      console.warn('⚠️ Chat access forbidden - may need to join conversation first');
       break;
     case 404:
-      console.warn('Chat conversation not found');
+      if (error.config?.url?.includes('/conversations/') || error.config?.url?.includes('/rooms/')) {
+        console.warn('⚠️ Chat conversation or room not found');
+      } else {
+        console.warn('⚠️ Chat endpoint not found');
+      }
       break;
-    case 429:
-      console.warn('Chat rate limit exceeded - slow down messaging');
-      // Có thể show notification cho user
+    case 409:
+      console.warn('⚠️ Chat conflict - duplicate message or already joined');
       break;
     case 413:
-      console.warn('Message too large');
+      console.warn('⚠️ Message too large - reduce message size');
+      break;
+    case 422:
+      console.warn('⚠️ Chat validation error - check message format and required fields');
+      break;
+    case 429:
+      console.warn('⚠️ Chat rate limit exceeded - slow down messaging');
+      break;
+    case 503:
+      console.error('❌ Chat service unavailable - messages may not be delivered');
+      break;
+    case 507:
+      console.error('❌ Chat storage full - unable to save messages');
       break;
     default:
       if (status && status >= 500) {
-        console.error('Chat service error - messages may not be delivered');
+        console.error('❌ Chat service error - messages may not be delivered');
       }
   }
 
   // Log specific chat error details
-  if (data && data.message) {
-    console.error('Chat API Error Details:', data.message);
+  if (data && (data.message || data.error || data.details)) {
+    console.error('📋 Chat API Error Details:', data.message || data.error || data.details);
   }
 }
 
 /**
- * Redirect to login with chat context
+ * Redirect to login với chat context
  */
-function redirectToLogin(reason?: string) {
+function redirectToChatLogin(reason?: string) {
   if (window.location.pathname !== '/login') {
     // Store current chat context
     const currentPath = window.location.pathname + window.location.search;
@@ -165,22 +247,43 @@ function redirectToLogin(reason?: string) {
     
     if (reason) {
       sessionStorage.setItem('loginReason', reason);
+      sessionStorage.setItem('loginContext', 'chat');
     }
     
+    console.log(`🔄 Chat API redirecting to login: ${reason || 'Authentication required'}`);
     window.location.href = '/login';
   }
 }
 
 /**
- * Chat-specific utilities
+ * Enhanced Chat Service Utilities
  */
 export const chatUtils = {
-  // Check if chat service is available
-  checkChatHealth: async () => {
+  // Health check cho chat service
+  checkChatHealth: async (): Promise<boolean> => {
     try {
-      const response = await chatApi.get('/health');
+      const response = await chatApi.get('/health', { timeout: 5000 });
+      console.log('✅ Chat service health check passed');
       return response.status === 200;
-    } catch {
+    } catch (error) {
+      console.error('❌ Chat service health check failed:', error);
+      return false;
+    }
+  },
+
+  // Test connectivity to chat service
+  testConnection: async (): Promise<boolean> => {
+    try {
+      console.log('🧪 Testing Chat API connection...');
+      const response = await chatApi.get('/api/v1/health', { timeout: 5000 });
+      console.log('✅ Chat API connection test passed:', response.status);
+      return true;
+    } catch (error: any) {
+      console.error('❌ Chat API connection test failed:', {
+        message: error.message,
+        status: error.response?.status,
+        url: error.config?.url
+      });
       return false;
     }
   },
@@ -189,20 +292,32 @@ export const chatUtils = {
   getCurrentChatUser: () => {
     const user = apiUtils.getCurrentUser();
     return user ? {
-      id: user.sub || user.userId,
-      username: user.username || user.preferred_username,
+      id: user.id,
+      username: user.username,
       email: user.email,
-      roles: user.roles || []
+      roles: user.roles || [],
+      displayName: user.username || user.email?.split('@')[0]
     } : null;
   },
   
-  // Format chat message for API
-  formatMessage: (content: string, type: 'text' | 'image' | 'file' = 'text') => {
+  // Format message for API
+  formatMessage: (
+    content: string, 
+    type: 'text' | 'image' | 'file' | 'emoji' = 'text',
+    metadata?: any
+  ) => {
+    const user = chatUtils.getCurrentChatUser();
     return {
       content: content.trim(),
       type,
       timestamp: new Date().toISOString(),
-      clientId: `web_${Date.now()}`
+      clientId: `web_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      sender: user ? {
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName
+      } : null,
+      metadata: metadata || {}
     };
   },
   
@@ -216,7 +331,128 @@ export const chatUtils = {
       return { isValid: false, error: 'Message too long (max 5000 characters)' };
     }
     
+    // Check for potentially harmful content (basic check)
+    if (content.includes('<script>') || content.includes('javascript:')) {
+      return { isValid: false, error: 'Message contains potentially harmful content' };
+    }
+    
     return { isValid: true };
+  },
+
+  // Enhanced conversation management
+  createConversation: async (participantIds: string[], title?: string) => {
+    try {
+      const response = await chatApi.post('/api/v1/conversations', {
+        participantIds,
+        title: title || `Conversation ${new Date().toLocaleString()}`,
+        type: 'group'
+      });
+      console.log('✅ Conversation created');
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Failed to create conversation:', error);
+      throw error;
+    }
+  },
+
+  joinConversation: async (conversationId: string) => {
+    try {
+      const response = await chatApi.post(`/api/v1/conversations/${conversationId}/join`);
+      console.log('✅ Joined conversation:', conversationId);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Failed to join conversation:', error);
+      throw error;
+    }
+  },
+
+  leaveConversation: async (conversationId: string) => {
+    try {
+      const response = await chatApi.post(`/api/v1/conversations/${conversationId}/leave`);
+      console.log('✅ Left conversation:', conversationId);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Failed to leave conversation:', error);
+      throw error;
+    }
+  },
+
+  // Message management
+  sendMessage: async (conversationId: string, content: string, type: string = 'text') => {
+    const validation = chatUtils.validateMessage(content);
+    if (!validation.isValid) {
+      throw new Error(validation.error);
+    }
+
+    try {
+      const message = chatUtils.formatMessage(content, type as any);
+      const response = await chatApi.post(`/api/v1/conversations/${conversationId}/messages`, message);
+      console.log('✅ Message sent to conversation:', conversationId);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Failed to send message:', error);
+      throw error;
+    }
+  },
+
+  getMessages: async (conversationId: string, page: number = 1, limit: number = 50) => {
+    try {
+      const response = await chatApi.get(`/api/v1/conversations/${conversationId}/messages`, {
+        params: { page, limit }
+      });
+      console.log('✅ Messages retrieved for conversation:', conversationId);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Failed to get messages:', error);
+      throw error;
+    }
+  },
+
+  // Real-time connection utilities
+  establishWebSocketConnection: (conversationId: string) => {
+    const user = chatUtils.getCurrentChatUser();
+    if (!user) {
+      console.error('❌ Cannot establish WebSocket connection: user not authenticated');
+      return null;
+    }
+
+    const token = TokenManager.getAccessToken();
+    if (!token) {
+      console.error('❌ Cannot establish WebSocket connection: no access token');
+      return null;
+    }
+
+    // WebSocket connection setup would go here
+    console.log('🔌 WebSocket connection setup for conversation:', conversationId);
+    return {
+      conversationId,
+      userId: user.id,
+      token,
+      timestamp: Date.now()
+    };
+  },
+
+  // Utility functions
+  formatTimestamp: (timestamp: string | Date) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    
+    if (diff < 60000) return 'Just now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+    
+    return date.toLocaleDateString();
+  },
+
+  generateMessageId: () => {
+    return `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  },
+
+  // Check if user can access chat
+  canAccessChat: () => {
+    const user = chatUtils.getCurrentChatUser();
+    return !!user && apiUtils.isAuthenticated();
   }
 };
 

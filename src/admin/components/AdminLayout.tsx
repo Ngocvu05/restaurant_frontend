@@ -24,6 +24,7 @@ interface Notification {
   content: string;
   isRead: boolean;
   createdAt: string;
+  
 }
 
 const AdminLayout: React.FC = () => {
@@ -48,111 +49,137 @@ const AdminLayout: React.FC = () => {
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    const username = sessionStorage.getItem('username');
-    const avatar = sessionStorage.getItem('avatar');
-    const token = sessionStorage.getItem('token');
-    const adminId = sessionStorage.getItem('adminId') || sessionStorage.getItem('userId');
-    
-    console.log(`User Info: ${username}, Avatar: ${avatar}, Token: ${token}, AdminId: ${adminId}`);
-    
-    if (!username) {
-      navigate('/login');
-      return;
-    }
+  const username = sessionStorage.getItem('username');
+  const avatar = sessionStorage.getItem('avatar');
+  const token = sessionStorage.getItem('token');
+  const adminId = sessionStorage.getItem('adminId') || sessionStorage.getItem('userId');
+  
+  console.log(`User Info: ${username}, Avatar: ${avatar}, Token: ${token}, AdminId: ${adminId}`);
+  
+  if (!username) {
+    navigate('/login');
+    return;
+  }
 
-    if (!adminId) {
-      console.warn('⚠️ AdminId not found in sessionStorage');
-    }
+  if (!adminId) {
+    console.warn('⚠️ AdminId not found in sessionStorage');
+  }
 
-    setUserInfo({
-      username,
-      avatarUrl: avatar ? avatar : '/assets/images/avatar.png',
-    });
+  setUserInfo({
+    username,
+    avatarUrl: avatar ? avatar : '/assets/images/avatar.png',
+  });
 
-    // Load notifications
-    getNotificationApi.getLimited(5)
-      .then((res) => {
-        const data = res.data;
-        console.log("📥 List notifications:", data);
-        if (Array.isArray(data)) {
-          setNotifications(data.reverse());
-        } else if (data && Array.isArray(data.content)) {
-          setNotifications(data.content.reverse());
-        } else {
-          console.warn('⚠️ Unexpected notification format:', data);
-        }
-      })
-      .catch(error => {
-        console.error('❌ Error fetching notifications:', error.message);
-      });
-
-    // Connect WebSocket services
-    connectAllWebSockets(username, {
-      onUserNotificationReceived: (notification) => {
-        setNotifications((prev) => [notification, ...prev]);
-        toast.info(`🔔 ${notification.title}`, {
-          position: 'top-right',
-          autoClose: 3000,
-          hideProgressBar: false,
-          pauseOnHover: true,
-          closeOnClick: true,
-        });
-      },
+  // ✅ FIXED: Load notifications with proper error handling
+  const loadNotifications = async () => {
+    try {
+      console.log('📬 Loading notifications...');
+      const notificationData = await getNotificationApi.getLimited(5);
       
-      onChatNotificationReceived: (notification) => {
-        setNotifications((prev) => [notification, ...prev]);
-        toast.info(`💬 ${notification.title}`, {
-          position: 'top-right',
-          autoClose: 3000,
-          hideProgressBar: false,
-          pauseOnHover: true,
-          closeOnClick: true,
-        });
-      },
+      console.log('📦 Raw notification data:', notificationData);
       
-      onAdminAlertReceived: (alertMessage) => {
-        const alertNotification = {
-          id: Date.now(),
-          title: 'Thông báo hệ thống',
-          content: alertMessage,
-          isRead: false,
-          createdAt: new Date().toISOString()
-        };
-        
-        setNotifications((prev) => [alertNotification, ...prev]);
-        toast.success(`🚨 ${alertMessage}`, {
-          position: 'top-right',
-          autoClose: 5000,
-          hideProgressBar: false,
-          pauseOnHover: true,
-          closeOnClick: true,
-        });
-      },
-      
-      onAdminBroadcastReceived: (broadcastMessage) => {
-        const broadcastNotification = {
-          id: Date.now() + Math.random(),
-          title: 'Thông báo Admin',
-          content: broadcastMessage,
-          isRead: false,
-          createdAt: new Date().toISOString()
-        };
-        
-        setNotifications((prev) => [broadcastNotification, ...prev]);
-        toast.info(`📢 ${broadcastMessage}`, {
-          position: 'top-right',
-          autoClose: 4000,
-          hideProgressBar: false,
-          pauseOnHover: true,
-          closeOnClick: true,
-        });
+      if (Array.isArray(notificationData)) {
+        // Reverse to show newest first
+        const sortedNotifications = notificationData.sort((a, b) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        setNotifications(sortedNotifications);
+        console.log(`✅ Loaded ${sortedNotifications.length} notifications`);
+      } else {
+        console.warn('⚠️ Notification data is not an array:', notificationData);
+        setNotifications([]);
       }
-    });
+    } catch (error: any) {
+      console.error('❌ Error loading notifications:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
+      
+      // Show user-friendly error
+      toast.error('Không thể tải thông báo. Vui lòng thử lại sau.', {
+        position: 'top-right',
+        autoClose: 3000
+      });
+      
+      setNotifications([]); // Set empty array on error
+    }
+  };
 
-    return () => {
-      disconnectAllWebSockets();
-    };
-  }, [navigate]);
+  loadNotifications();
+
+  // Connect WebSocket services
+  connectAllWebSockets(username, {
+    onUserNotificationReceived: (notification) => {
+      console.log('🔔 New user notification received:', notification);
+      setNotifications((prev) => [notification, ...prev]);
+      toast.info(`📬 ${notification.title}`, {
+        position: 'top-right',
+        autoClose: 3000,
+        hideProgressBar: false,
+        pauseOnHover: true,
+        closeOnClick: true,
+      });
+    },
+    
+    onChatNotificationReceived: (notification) => {
+      console.log('💬 New chat notification received:', notification);
+      setNotifications((prev) => [notification, ...prev]);
+      toast.info(`💬 ${notification.title}`, {
+        position: 'top-right',
+        autoClose: 3000,
+        hideProgressBar: false,
+        pauseOnHover: true,
+        closeOnClick: true,
+      });
+    },
+    
+    onAdminAlertReceived: (alertMessage) => {
+      const alertNotification = {
+        id: Date.now(),
+        title: 'Thông báo hệ thống',
+        content: alertMessage,
+        isRead: false,
+        createdAt: new Date().toISOString()
+      };
+      
+      console.log('🚨 New admin alert received:', alertNotification);
+      setNotifications((prev) => [alertNotification, ...prev]);
+      toast.success(`🚨 ${alertMessage}`, {
+        position: 'top-right',
+        autoClose: 5000,
+        hideProgressBar: false,
+        pauseOnHover: true,
+        closeOnClick: true,
+      });
+    },
+    
+    onAdminBroadcastReceived: (broadcastMessage) => {
+      const broadcastNotification = {
+        id: Date.now() + Math.random(),
+        title: 'Thông báo Admin',
+        content: broadcastMessage,
+        isRead: false,
+        createdAt: new Date().toISOString()
+      };
+      
+      console.log('📢 New admin broadcast received:', broadcastNotification);
+      setNotifications((prev) => [broadcastNotification, ...prev]);
+      toast.info(`📢 ${broadcastMessage}`, {
+        position: 'top-right',
+        autoClose: 4000,
+        hideProgressBar: false,
+        pauseOnHover: true,
+        closeOnClick: true,
+      });
+    }
+  });
+
+  return () => {
+    disconnectAllWebSockets();
+  };
+}, [navigate]);
 
   // Enhanced search with debouncing
   const handleSearchInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -274,19 +301,66 @@ const AdminLayout: React.FC = () => {
     setShowModal(true);
   };
 
-  const handleCloseModal = () => {
+  const handleCloseModal = async () => {
     if (selectedNotification && !selectedNotification.isRead) {
-      getNotificationApi.readNotification(selectedNotification.id).then(() => {
+      try {
+        console.log(`📖 Marking notification ${selectedNotification.id} as read...`);
+        await getNotificationApi.readNotification(selectedNotification.id);
+        
+        // Update local state
         setNotifications((prev) =>
           prev.map((n) =>
             n.id === selectedNotification.id ? { ...n, isRead: true } : n
           )
         );
-      }).catch(error => {
+        
+        console.log(`✅ Notification ${selectedNotification.id} marked as read`);
+      } catch (error: any) {
         console.error('❌ Error marking notification as read:', error);
-      });
+        toast.error('Không thể đánh dấu thông báo đã đọc');
+      }
     }
     setShowModal(false);
+    setSelectedNotification(null);
+  };
+
+  // FIXED: Add notification refresh function
+  const refreshNotifications = async () => {
+    try {
+      console.log('🔄 Refreshing notifications...');
+      const notificationData = await getNotificationApi.getLimited(10);
+      
+      if (Array.isArray(notificationData)) {
+        const sortedNotifications = notificationData.sort((a, b) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        setNotifications(sortedNotifications);
+        console.log(`✅ Refreshed ${sortedNotifications.length} notifications`);
+        toast.success('Đã cập nhật thông báo');
+      }
+    } catch (error) {
+      console.error('❌ Error refreshing notifications:', error);
+      toast.error('Không thể cập nhật thông báo');
+    }
+  };
+
+  // FIXED: Add mark all as read function
+  const markAllNotificationsAsRead = async () => {
+    try {
+      console.log('📖 Marking all notifications as read...');
+      await getNotificationApi.markAllAsRead();
+      
+      // Update local state
+      setNotifications((prev) =>
+        prev.map((n) => ({ ...n, isRead: true }))
+      );
+      
+      console.log('✅ All notifications marked as read');
+      toast.success('Đã đánh dấu tất cả thông báo đã đọc');
+    } catch (error: any) {
+      console.error('❌ Error marking all notifications as read:', error);
+      toast.error('Không thể đánh dấu tất cả thông báo đã đọc');
+    }
   };
 
   const closeSearchResults = () => {
@@ -402,7 +476,13 @@ const AdminLayout: React.FC = () => {
 
           <ul className="navbar-nav ms-auto">
             <li className="nav-item dropdown mx-2">
-              <button className="nav-link btn btn-link p-0 border-0 bg-transparent position-relative" id="alertsDropdown" data-bs-toggle="dropdown" aria-expanded="false" type="button">
+              <button 
+                className="nav-link btn btn-link p-0 border-0 bg-transparent position-relative" 
+                id="alertsDropdown" 
+                data-bs-toggle="dropdown" 
+                aria-expanded="false" 
+                type="button"
+              >
                 <i className="bi bi-bell fs-5"></i>
                 {notifications.some(n => !n.isRead) && (
                   <span className="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle">
@@ -410,27 +490,74 @@ const AdminLayout: React.FC = () => {
                   </span>
                 )}
               </button>
-              <ul className="dropdown-menu dropdown-menu-end shadow" aria-labelledby="alertsDropdown">
-                <li><h6 className="dropdown-header">Thông báo</h6></li>
-                {notifications.slice(0, 5).map((n, i) => (
-                  <li key={i}>
-                    <span
-                      className={`dropdown-item ${!n.isRead ? 'fw-bold' : ''}`}
-                      onClick={() => handleOpenNotification(n)}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <div className="d-flex justify-content-between align-items-start">
-                        <div className="flex-grow-1">
-                          <div className="fw-medium">{n.title}</div>
-                          <small className="text-muted">{n.content.substring(0, 50)}...</small>
-                        </div>
-                        {!n.isRead && <span className="badge bg-primary ms-2">New</span>}
-                      </div>
-                    </span>
-                  </li>
-                ))}
+              <ul className="dropdown-menu dropdown-menu-end shadow" aria-labelledby="alertsDropdown" style={{ minWidth: '350px' }}>
+                <li>
+                  <div className="dropdown-header d-flex justify-content-between align-items-center">
+                    <h6 className="mb-0">Thông báo</h6>
+                    <div>
+                      <button 
+                        className="btn btn-sm btn-outline-primary me-1"
+                        onClick={refreshNotifications}
+                        title="Cập nhật"
+                      >
+                        <i className="bi bi-arrow-clockwise"></i>
+                      </button>
+                      {notifications.some(n => !n.isRead) && (
+                        <button 
+                          className="btn btn-sm btn-outline-success"
+                          onClick={markAllNotificationsAsRead}
+                          title="Đánh dấu tất cả đã đọc"
+                        >
+                          <i className="bi bi-check-all"></i>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </li>
                 <li><hr className="dropdown-divider" /></li>
-                <li><Link to="/admin/notifications" className="dropdown-item text-center text-primary">Xem tất cả</Link></li>
+                
+                {notifications.length === 0 ? (
+                  <li>
+                    <div className="text-center py-3 text-muted">
+                      <i className="bi bi-bell-slash fs-4"></i>
+                      <p className="mb-0 small">Không có thông báo</p>
+                    </div>
+                  </li>
+                ) : (
+                  notifications.slice(0, 5).map((notification, index) => (
+                    <li key={notification.id || index}>
+                      <button
+                        className={`dropdown-item ${!notification.isRead ? 'fw-bold bg-light' : ''}`}
+                        onClick={() => handleOpenNotification(notification)}
+                        style={{ whiteSpace: 'normal', maxWidth: '330px' }}
+                      >
+                        <div className="d-flex justify-content-between align-items-start">
+                          <div className="flex-grow-1 me-2">
+                            <div className="fw-medium">{notification.title}</div>
+                            <small className="text-muted d-block">
+                              {getNotificationApi.utils.truncateContent(notification.content, 60)}
+                            </small>
+                            <small className="text-muted">
+                              <i className="bi bi-clock me-1"></i>
+                              {getNotificationApi.utils.getRelativeTime(notification.createdAt)}
+                            </small>
+                          </div>
+                          {!notification.isRead && (
+                            <span className="badge bg-primary ms-2">Mới</span>
+                          )}
+                        </div>
+                      </button>
+                    </li>
+                  ))
+                )}
+                
+                <li><hr className="dropdown-divider" /></li>
+                <li>
+                  <Link to="/admin/notifications" className="dropdown-item text-center text-primary">
+                    <i className="bi bi-list me-1"></i>
+                    Xem tất cả ({notifications.length})
+                  </Link>
+                </li>
               </ul>
             </li>
 
